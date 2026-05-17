@@ -29,11 +29,7 @@ export class LoginHandler implements ICommandHandler<LoginCommand> {
       throw InvalidCredentials.provided();
     }
 
-    const primitives = user.toPrimitives() as { id: string; email: string };
-    const accessToken = this.tokenService.sign({
-      sub: primitives.id,
-      email: primitives.email,
-    });
+    const accessToken = this.tokenService.sign({ sub: user.id.asString() });
 
     return { accessToken };
   }

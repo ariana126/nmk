@@ -78,6 +78,67 @@ Then(
       200,
       `Expected login to succeed (HTTP 200) but got ${loginResponse.status}. Body: ${JSON.stringify(loginResponse.body)}`,
     );
+
+    this.accessToken = (loginResponse.body as { accessToken: string }).accessToken;
+  },
+);
+
+Then(
+  'I should see my profile with the following details:',
+  async function (this: AppWorld, dataTable: DataTable) {
+    assert.ok(
+      this.accessToken,
+      'Expected accessToken to be set (run the login step first)',
+    );
+
+    const profileResponse = await this.client
+      .get('/users/me')
+      .set('Authorization', `Bearer ${this.accessToken}`);
+
+    assert.equal(
+      profileResponse.status,
+      200,
+      `Expected 200 but got ${profileResponse.status}. Body: ${JSON.stringify(profileResponse.body)}`,
+    );
+
+    const expected = dataTable.rowsHash() as Record<string, string>;
+    const body = profileResponse.body as Record<string, unknown>;
+
+    assert.deepEqual(
+      Object.keys(body).sort(),
+      Object.keys(expected).sort(),
+      `Expected profile to contain exactly [${Object.keys(expected).sort().join(', ')}] but got [${Object.keys(body).sort().join(', ')}]`,
+    );
+
+    for (const [field, value] of Object.entries(expected)) {
+      if (value === '<present>') {
+        assert.ok(
+          body[field] !== undefined && body[field] !== null && body[field] !== '',
+          `Expected profile.${field} to be present but got "${body[field]}"`,
+        );
+      } else {
+        assert.equal(
+          body[field],
+          value,
+          `Expected profile.${field} to be "${value}" but got "${body[field]}"`,
+        );
+      }
+    }
+  },
+);
+
+Then(
+  'I should not be able to log in with email {string} and password {string}',
+  async function (this: AppWorld, email: string, password: string) {
+    const loginResponse = await this.client
+      .post('/auth/login')
+      .send({ email, password });
+
+    assert.equal(
+      loginResponse.status,
+      401,
+      `Expected login to fail (HTTP 401) but got ${loginResponse.status}. Body: ${JSON.stringify(loginResponse.body)}`,
+    );
   },
 );
 

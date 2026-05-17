@@ -15,6 +15,11 @@ Feature: User Registration
       | password  | SecurePass123!   |
     Then the response status should be 201
     And I should be able to log in with email "test@example.com" and password "SecurePass123!"
+    And I should see my profile with the following details:
+      | id        | <present>        |
+      | firstName | Ariana           |
+      | lastName  | Maghsoudi        |
+      | email     | test@example.com |
 
   Scenario: Registration with an email already in use
     Given a user with email "test@example.com" already exists
@@ -25,6 +30,7 @@ Feature: User Registration
       | password  | AnotherPass456!  |
     Then the response status should be 409
     And the response body should contain an error indicating the email is taken
+    And I should not be able to log in with email "test@example.com" and password "AnotherPass456!"
 
   Scenario: Registration with missing required fields
     When I register with the following details:
@@ -49,3 +55,4 @@ Feature: User Registration
       | password  | 123              |
     Then the response status should be 400
     And the response body should contain a validation error for "password"
+    And I should not be able to log in with email "test@example.com" and password "123"

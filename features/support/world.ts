@@ -6,6 +6,7 @@ export class AppWorld extends World {
   app: INestApplication;
   client: ReturnType<typeof supertest>;
   response: supertest.Response;
+  accessToken: string | null = null;
 }
 
 setWorldConstructor(AppWorld);

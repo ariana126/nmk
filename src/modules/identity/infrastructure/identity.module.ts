@@ -10,6 +10,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { CommandHandlers } from '@identity/application/commands';
 import { Controllers } from '@identity/infrastructure/http/controllers';
+import { QueryHandlers } from '@identity/application/queries';
+import { JwtAuthGuard } from '@identity/infrastructure/http/guards/jwt-auth.guard';
 
 @Module({
   imports: [
@@ -25,6 +27,8 @@ import { Controllers } from '@identity/infrastructure/http/controllers';
   controllers: [...Controllers],
   providers: [
     ...CommandHandlers,
+    ...QueryHandlers,
+    JwtAuthGuard,
     {
       provide: UserRepository,
       useClass: PrismaUserRepository,
