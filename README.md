@@ -39,6 +39,8 @@ Given a user record exists in the users table
 
 This approach decouples tests from internals, making them resilient to refactors and safe to run against AI-generated implementations.
 
+Feature specs live in `features/specs/`. Step definitions live in `features/step_definitions/`. World setup and lifecycle hooks live in `features/support/`.
+
 ### Structural Validation
 
 Beyond working code, structure is checked for long-term maintainability:
@@ -61,5 +63,75 @@ Beyond working code, structure is checked for long-term maintainability:
 | Framework | NestJS |
 | Language | TypeScript |
 | Database | PostgreSQL |
-| BDD | Cucumber
+| ORM | Prisma |
+| Architecture | DDD + CQRS |
+| Auth | JWT + bcrypt |
+| BDD | Cucumber |
+| Unit testing | Jest |
 | AI Agent | Claude Code |
+
+---
+
+## Project Structure
+
+```
+src/
+├── framework/                  # Shared DDD building blocks
+│   ├── domain/                 # Entity, AggregateRoot, ValueObject, DomainEvent
+│   │   └── value-objects/      # Identity, Email
+│   ├── application/            # Application-level exceptions
+│   └── infrastructure/         # PrismaModule, PrismaService, HttpExceptionFilter
+│
+└── modules/
+    └── identity/               # User registration and authentication
+        ├── domain/             # User aggregate, repository interface, service interfaces
+        ├── application/        # RegisterUserCommand, LoginCommand + handlers
+        └── infrastructure/     # Controllers, DTOs, Prisma repository, JWT/bcrypt impls
+
+features/
+├── specs/                      # Gherkin feature files
+├── step_definitions/           # Step implementations
+└── support/                    # World class and lifecycle hooks
+
+prisma/
+├── schema/                     # Modular Prisma schema files
+└── migrations/                 # SQL migration history
+```
+
+---
+
+## Getting Started
+
+**Prerequisites:** Node.js, PostgreSQL running locally.
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Configure environment
+cp .env.example .env
+# Fill in DATABASE_URL and JWT_SECRET in .env
+
+# 3. Run database migrations
+npm run db:migration:deploy
+
+# 4. Start the dev server
+npm run start:dev
+```
+
+---
+
+## Scripts
+
+| Script | Description |
+|---|---|
+| `start:dev` | Start with hot reload |
+| `build` | Compile TypeScript |
+| `lint` | Lint and auto-fix |
+| `test` | Run Jest unit tests |
+| `test:bdd` | Run Cucumber BDD tests |
+| `db:migration:create` | Create a new migration |
+| `db:migration:deploy` | Apply pending migrations |
+| `db:migration:status` | Show migration status |
+| `db:studio` | Open Prisma Studio |
+| `db:generate-client` | Regenerate Prisma client |
