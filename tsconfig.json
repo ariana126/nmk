@@ -14,6 +14,10 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
+    "paths": {
+      "@framework/*": ["src/framework/*"],
+      "@identity/*": ["src/modules/identity/*"]
+    },
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,
