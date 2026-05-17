@@ -1,6 +1,6 @@
 openapi: 3.0.0
 paths:
-  /users:
+  /api/v1/users:
     post:
       operationId: UserController_register
       parameters: []
@@ -49,7 +49,7 @@ paths:
       summary: Register a new user
       tags:
         - Users
-  /users/me:
+  /api/v1/users/me:
     get:
       operationId: UserController_profile
       parameters: []
@@ -109,7 +109,7 @@ paths:
       summary: Get current user profile
       tags:
         - Users
-  /auth/login:
+  /api/v1/auth/login:
     post:
       operationId: AuthController_login
       parameters: []

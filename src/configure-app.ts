@@ -3,6 +3,8 @@ import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 import { HttpExceptionFilter } from '@framework/infrastructure';
 
 export function configureApp(app: INestApplication): void {
+  app.setGlobalPrefix('api/v1');
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
