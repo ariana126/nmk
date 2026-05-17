@@ -1,4 +1,5 @@
 import { AggregateRoot, Email, Identity } from '@framework/domain';
+import { UserRegistered } from './events/user-registered.event';
 
 export class User extends AggregateRoot {
   constructor(
@@ -17,8 +18,9 @@ export class User extends AggregateRoot {
     firstName: string,
     lastName: string,
   ): User {
-    // TODO: Record domain event.
-    return new User(Identity.new(), email, password, firstName, lastName);
+    const user = new User(Identity.new(), email, password, firstName, lastName);
+    user.recordThat(new UserRegistered(user.id.asString(), email.asString()));
+    return user;
   }
 
   public getPassword(): string {

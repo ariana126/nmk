@@ -4,6 +4,7 @@ import {
   EntityRepository,
   Identity,
 } from '@framework/domain';
+import { EventBus, IEvent } from '@nestjs/cqrs';
 
 export interface ModelDelegate<PModel> {
   findUnique(args: { where: { id: string } }): Promise<PModel | null>;
@@ -18,7 +19,10 @@ export abstract class PrismaEntityRepository<
   T extends AggregateRoot,
   PModel extends { id: string },
 > extends EntityRepository<T> {
-  constructor(protected readonly delegate: ModelDelegate<PModel>) {
+  constructor(
+    protected readonly delegate: ModelDelegate<PModel>,
+    private readonly eventBus: EventBus,
+  ) {
     super();
   }
 
@@ -46,5 +50,6 @@ export abstract class PrismaEntityRepository<
       create: data,
       update: updateData,
     });
+    this.eventBus.publishAll(entity.releaseEvents() as IEvent[]);
   }
 }
