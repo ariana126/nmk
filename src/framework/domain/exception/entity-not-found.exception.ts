@@ -1,13 +1,14 @@
 import { DomainException, Identity } from '@framework/domain';
 
-export const ENTITY_NOT_FOUND_ERROR_CODE = 'EntityNotFound';
-
 export class EntityNotFound extends DomainException {
-  private constructor(message: string) {
-    super(message, ENTITY_NOT_FOUND_ERROR_CODE);
+  private constructor(
+    message: string,
+    public readonly identifier: Identity,
+  ) {
+    super(message);
   }
 
   public static withId(id: Identity): EntityNotFound {
-    return new EntityNotFound(`Entity not found with id ${id.asString()}`);
+    return new EntityNotFound(`Entity not found with id ${id.asString()}`, id);
   }
 }

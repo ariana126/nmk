@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.0",
   "paths": {
-    "/api/v1/users": {
+    "/api/users": {
       "post": {
         "operationId": "UserController_register",
         "parameters": [],
@@ -25,22 +25,37 @@
               "application/json": {
                 "schema": {
                   "properties": {
-                    "statusCode": {
+                    "type": {
+                      "type": "string",
+                      "example": "https://my-api-doc.dev/problems/validation-error"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Validation Error"
+                    },
+                    "status": {
                       "type": "number",
                       "example": 400
                     },
-                    "message": {
+                    "detail": {
+                      "type": "string",
+                      "example": "One or more fields failed validation."
+                    },
+                    "errors": {
                       "type": "array",
                       "items": {
-                        "type": "string"
-                      },
-                      "example": [
-                        "email must be an email"
-                      ]
-                    },
-                    "error": {
-                      "type": "string",
-                      "example": "Bad Request"
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "example": "email"
+                          },
+                          "message": {
+                            "type": "string",
+                            "example": "email must be an email"
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -53,17 +68,25 @@
               "application/json": {
                 "schema": {
                   "properties": {
-                    "statusCode": {
+                    "type": {
+                      "type": "string",
+                      "example": "https://my-api-doc.dev/problems/user-already-exists"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "User Already Exists"
+                    },
+                    "status": {
                       "type": "number",
                       "example": 409
                     },
-                    "errorCode": {
-                      "type": "string",
-                      "example": "UserAlreadyExists"
-                    },
-                    "message": {
+                    "detail": {
                       "type": "string",
                       "example": "User already exists with email john.doe@example.com"
+                    },
+                    "email": {
+                      "type": "string",
+                      "example": "john.doe@example.com"
                     }
                   }
                 }
@@ -77,7 +100,7 @@
         ]
       }
     },
-    "/api/v1/users/me": {
+    "/api/users/me": {
       "get": {
         "operationId": "UserController_profile",
         "parameters": [],
@@ -115,17 +138,17 @@
               "application/json": {
                 "schema": {
                   "properties": {
-                    "statusCode": {
+                    "type": {
+                      "type": "string",
+                      "example": "about:blank"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    },
+                    "status": {
                       "type": "number",
                       "example": 401
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Unauthorized"
-                    },
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized"
                     }
                   }
                 }
@@ -138,17 +161,25 @@
               "application/json": {
                 "schema": {
                   "properties": {
-                    "statusCode": {
+                    "type": {
+                      "type": "string",
+                      "example": "https://my-api-doc.dev/problems/entity-not-found"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Entity not found"
+                    },
+                    "status": {
                       "type": "number",
                       "example": 404
                     },
-                    "errorCode": {
-                      "type": "string",
-                      "example": "EntityNotFound"
-                    },
-                    "message": {
+                    "detail": {
                       "type": "string",
                       "example": "Entity not found with id 550e8400-e29b-41d4-a716-446655440000"
+                    },
+                    "entityId": {
+                      "type": "string",
+                      "example": "550e8400-e29b-41d4-a716-446655440000"
                     }
                   }
                 }
@@ -167,7 +198,7 @@
         ]
       }
     },
-    "/api/v1/auth/login": {
+    "/api/auth/login": {
       "post": {
         "operationId": "AuthController_login",
         "parameters": [],
@@ -202,22 +233,37 @@
               "application/json": {
                 "schema": {
                   "properties": {
-                    "statusCode": {
+                    "type": {
+                      "type": "string",
+                      "example": "https://my-api-doc.dev/problems/validation-error"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Validation Error"
+                    },
+                    "status": {
                       "type": "number",
                       "example": 400
                     },
-                    "message": {
+                    "detail": {
+                      "type": "string",
+                      "example": "One or more fields failed validation."
+                    },
+                    "errors": {
                       "type": "array",
                       "items": {
-                        "type": "string"
-                      },
-                      "example": [
-                        "email must be an email"
-                      ]
-                    },
-                    "error": {
-                      "type": "string",
-                      "example": "Bad Request"
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "example": "email"
+                          },
+                          "message": {
+                            "type": "string",
+                            "example": "email must be an email"
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -230,15 +276,19 @@
               "application/json": {
                 "schema": {
                   "properties": {
-                    "statusCode": {
+                    "type": {
+                      "type": "string",
+                      "example": "https://my-api-doc.dev/problems/invalid-credentials"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Invalid Credentials"
+                    },
+                    "status": {
                       "type": "number",
                       "example": 401
                     },
-                    "errorCode": {
-                      "type": "string",
-                      "example": "InvalidCredentials"
-                    },
-                    "message": {
+                    "detail": {
                       "type": "string",
                       "example": "Invalid credentials provided."
                     }

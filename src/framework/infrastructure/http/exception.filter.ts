@@ -1,53 +1,36 @@
-import {
-  ArgumentsHost,
-  Catch,
-  ExceptionFilter,
-  HttpException,
-  HttpStatus,
-} from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
 import { Response } from 'express';
 import {
-  DomainException,
-  ENTITY_NOT_FOUND_ERROR_CODE,
-} from '@framework/domain';
-import {
-  INVALID_CREDENTIALS_ERROR_CODE,
-  USER_ALREADY_EXISTS_ERROR_CODE,
-} from '@identity/application/exceptions';
+  FrameworkExceptionMapper,
+  ProblemDetail,
+} from '@framework/infrastructure';
+import { ExceptionMapper } from '@framework/infrastructure';
+import { IdentityExceptionMapper } from '@identity/infrastructure/http/exception.mapper';
 
-const HTTP_STATUS_MAP: Record<string, number> = {
-  [ENTITY_NOT_FOUND_ERROR_CODE]: HttpStatus.NOT_FOUND,
-  [USER_ALREADY_EXISTS_ERROR_CODE]: HttpStatus.CONFLICT,
-  [INVALID_CREDENTIALS_ERROR_CODE]: HttpStatus.UNAUTHORIZED,
-};
+const ExceptionMappers: ExceptionMapper[] = [
+  new FrameworkExceptionMapper(),
+  new IdentityExceptionMapper(),
+];
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: any, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
+    const problemDetail: ProblemDetail = this.getProblemDetail(exception);
+    return response
+      .status(problemDetail.status)
+      .header('Content-Type', 'application/problem+json')
+      .json(problemDetail.asResponseBody());
+  }
 
-    if (exception instanceof HttpException) {
-      response.status(exception.getStatus()).json(exception.getResponse());
-      return;
+  private getProblemDetail(exception: unknown): ProblemDetail {
+    for (const mapper of ExceptionMappers) {
+      if (!mapper.canMap(exception)) {
+        continue;
+      }
+      return mapper.toProblemDetail(exception);
     }
-
-    if (!(exception instanceof DomainException)) {
-      response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-        errorCode: 'INTERNAL_SERVER_ERROR',
-        message: 'An unexpected error occurred',
-      });
-      return;
-    }
-
-    const statusCode =
-      HTTP_STATUS_MAP[exception.errorCode] ?? HttpStatus.INTERNAL_SERVER_ERROR;
-
-    response.status(statusCode).json({
-      statusCode,
-      errorCode: exception.errorCode,
-      message: exception.message,
-    });
+    return ProblemDetail.forUnknownError();
   }
 }

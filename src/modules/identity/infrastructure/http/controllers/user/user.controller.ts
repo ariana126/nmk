@@ -28,8 +28,10 @@ import {
   JwtAuthGuard,
   CurrentUser,
   AuthenticatedUser,
-  domainErrorSchema,
   ValidationErrorSchema,
+  EntityNotFoundSchema,
+  JwtUnauthorizedSchema,
+  domainErrorSchema,
 } from '@framework/infrastructure';
 
 @ApiTags('Users')
@@ -47,9 +49,11 @@ export class UserController {
   @ApiBadRequestResponse({ schema: ValidationErrorSchema })
   @ApiConflictResponse({
     schema: domainErrorSchema(
+      'user-already-exists',
+      'User Already Exists',
       409,
-      'UserAlreadyExists',
       'User already exists with email john.doe@example.com',
+      { email: { type: 'string', example: 'john.doe@example.com' } },
     ),
   })
   async register(@Body() body: RegisterUserDto): Promise<void> {
@@ -69,21 +73,9 @@ export class UserController {
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiUnauthorizedResponse({
     description: 'Missing or invalid JWT token',
-    schema: {
-      properties: {
-        statusCode: { type: 'number', example: 401 },
-        message: { type: 'string', example: 'Unauthorized' },
-        error: { type: 'string', example: 'Unauthorized' },
-      },
-    },
+    schema: JwtUnauthorizedSchema,
   })
-  @ApiNotFoundResponse({
-    schema: domainErrorSchema(
-      404,
-      'EntityNotFound',
-      'Entity not found with id 550e8400-e29b-41d4-a716-446655440000',
-    ),
-  })
+  @ApiNotFoundResponse({ schema: EntityNotFoundSchema })
   @ApiOkResponse({
     schema: {
       properties: {

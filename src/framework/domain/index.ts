@@ -6,7 +6,4 @@ export { Identity } from './value/identity.vo';
 export { Email } from './value/email.vo';
 export { EntityRepository } from './service/entity.repository';
 export { DomainException } from './exception/domain.exception';
-export {
-  EntityNotFound,
-  ENTITY_NOT_FOUND_ERROR_CODE,
-} from './exception/entity-not-found.exception';
+export { EntityNotFound } from './exception/entity-not-found.exception';

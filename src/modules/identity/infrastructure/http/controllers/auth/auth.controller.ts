@@ -29,8 +29,9 @@ export class AuthController {
   @ApiBadRequestResponse({ schema: ValidationErrorSchema })
   @ApiUnauthorizedResponse({
     schema: domainErrorSchema(
+      'invalid-credentials',
+      'Invalid Credentials',
       401,
-      'InvalidCredentials',
       'Invalid credentials provided.',
     ),
   })

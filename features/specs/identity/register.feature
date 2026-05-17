@@ -29,6 +29,7 @@ Feature: User Registration
       | email     | test@example.com |
       | password  | AnotherPass456!  |
     Then the response status should be 409
+    And the response should be a valid problem detail
     And the response body should contain an error indicating the email is taken
     And I should not be able to log in with email "test@example.com" and password "AnotherPass456!"
 
@@ -36,7 +37,11 @@ Feature: User Registration
     When I register with the following details:
       | firstName | Ariana |
     Then the response status should be 400
-    And the response body should contain validation errors for "lastName", "email" and "password"
+    And the response should be a valid problem detail
+    And the response body should contain validation errors for:
+      | lastName |
+      | email    |
+      | password |
 
   Scenario: Registration with an invalid email format
     When I register with the following details:
@@ -45,7 +50,9 @@ Feature: User Registration
       | email     | not-an-email    |
       | password  | SecurePass123!  |
     Then the response status should be 400
-    And the response body should contain a validation error for "email"
+    And the response should be a valid problem detail
+    And the response body should contain validation errors for:
+      | email |
 
   Scenario: Registration with a weak password
     When I register with the following details:
@@ -54,5 +61,7 @@ Feature: User Registration
       | email     | test@example.com |
       | password  | 123              |
     Then the response status should be 400
-    And the response body should contain a validation error for "password"
+    And the response should be a valid problem detail
+    And the response body should contain validation errors for:
+      | password |
     And I should not be able to log in with email "test@example.com" and password "123"

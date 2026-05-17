@@ -1,15 +1,26 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  BadRequestException,
+  INestApplication,
+  ValidationPipe,
+} from '@nestjs/common';
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 import { HttpExceptionFilter } from '@framework/infrastructure';
 
 export function configureApp(app: INestApplication): void {
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api');
 
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      exceptionFactory: (errors) => {
+        const mappedErrors = errors.map((error) => ({
+          field: error.property,
+          message: Object.values(error.constraints ?? {}).join(', '),
+        }));
+        return new BadRequestException(mappedErrors);
+      },
     }),
   );
 
