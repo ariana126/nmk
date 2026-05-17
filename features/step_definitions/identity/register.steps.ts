@@ -26,7 +26,7 @@ Given(
 Given(
     'a user with email {string} already exists',
     async function (this: AppWorld, email: string) {
-        await this.client.post('/auth/register').send({
+        await this.client.post('/users').send({
             firstName: 'Seed',
             lastName: 'User',
             email,
@@ -43,7 +43,7 @@ When(
     'I register with the following details:',
     async function (this: AppWorld, dataTable: DataTable) {
         const fields = dataTable.rowsHash();
-        this.response = await this.client.post('/auth/register').send(fields);
+        this.response = await this.client.post('/users').send(fields);
     },
 );
 

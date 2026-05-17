@@ -5,7 +5,7 @@ module.exports = {
             'features/support/*.ts',
             'features/step_definitions/**/*.steps.ts',
         ],
-        requireModule: ['ts-node/register'],
+        requireModule: ['ts-node/register', 'tsconfig-paths/register'],
         format: ['progress-bar', 'html:reports/bdd.html'],
     },
 };

@@ -9,7 +9,6 @@ Feature: User Registration
 
   Scenario: Successful registration
     When I register with the following details:
-      | field     | value            |
       | firstName | Ariana           |
       | lastName  | Maghsoudi        |
       | email     | test@example.com |
@@ -20,7 +19,6 @@ Feature: User Registration
   Scenario: Registration with an email already in use
     Given a user with email "test@example.com" already exists
     When I register with the following details:
-      | field     | value            |
       | firstName | Ariana           |
       | lastName  | Maghsoudi        |
       | email     | test@example.com |
@@ -30,14 +28,12 @@ Feature: User Registration
 
   Scenario: Registration with missing required fields
     When I register with the following details:
-      | field     | value  |
       | firstName | Ariana |
     Then the response status should be 400
     And the response body should contain validation errors for "lastName", "email" and "password"
 
   Scenario: Registration with an invalid email format
     When I register with the following details:
-      | field     | value           |
       | firstName | Ariana          |
       | lastName  | Maghsoudi       |
       | email     | not-an-email    |
@@ -47,7 +43,6 @@ Feature: User Registration
 
   Scenario: Registration with a weak password
     When I register with the following details:
-      | field     | value            |
       | firstName | Ariana           |
       | lastName  | Maghsoudi        |
       | email     | test@example.com |
