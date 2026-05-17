@@ -8,17 +8,31 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { RegisterUserDto } from './dto/register-user.dto';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiConflictResponse,
+  ApiCreatedResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { RegisterUserCommand } from '@identity/application/commands/register-user/register-user.command';
-import { Email } from '@framework/domain';
 import { GetUserByIdQuery } from '@identity/application/queries/get-user-by-id/get-user-by-id.query';
+import { UserReadModel } from '@identity/application/queries/get-user-by-id/user.read-model';
+import { RegisterUserDto } from './dto/register-user.dto';
+import { Email } from '@framework/domain';
 import {
   JwtAuthGuard,
   CurrentUser,
   AuthenticatedUser,
+  domainErrorSchema,
+  ValidationErrorSchema,
 } from '@framework/infrastructure';
-import { UserReadModel } from '@identity/application/queries/get-user-by-id/user.read-model';
 
+@ApiTags('Users')
 @Controller('users')
 export class UserController {
   constructor(
@@ -28,6 +42,16 @@ export class UserController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Register a new user' })
+  @ApiCreatedResponse({ description: 'User registered successfully' })
+  @ApiBadRequestResponse({ schema: ValidationErrorSchema })
+  @ApiConflictResponse({
+    schema: domainErrorSchema(
+      409,
+      'UserAlreadyExists',
+      'User already exists with email john.doe@example.com',
+    ),
+  })
   async register(@Body() body: RegisterUserDto): Promise<void> {
     await this.commandBus.execute(
       new RegisterUserCommand(
@@ -41,6 +65,35 @@ export class UserController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current user profile' })
+  @ApiUnauthorizedResponse({
+    description: 'Missing or invalid JWT token',
+    schema: {
+      properties: {
+        statusCode: { type: 'number', example: 401 },
+        message: { type: 'string', example: 'Unauthorized' },
+        error: { type: 'string', example: 'Unauthorized' },
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    schema: domainErrorSchema(
+      404,
+      'EntityNotFound',
+      'Entity not found with id 550e8400-e29b-41d4-a716-446655440000',
+    ),
+  })
+  @ApiOkResponse({
+    schema: {
+      properties: {
+        id: { type: 'string', example: '550e8400-e29b-41d4-a716-446655440000' },
+        email: { type: 'string', example: 'john.doe@example.com' },
+        firstName: { type: 'string', example: 'John' },
+        lastName: { type: 'string', example: 'Doe' },
+      },
+    },
+  })
   async profile(
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<UserReadModel> {

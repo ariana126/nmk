@@ -1,0 +1,215 @@
+openapi: 3.0.0
+paths:
+  /users:
+    post:
+      operationId: UserController_register
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterUserDto'
+      responses:
+        '201':
+          description: User registered successfully
+        '400':
+          description: ''
+          content:
+            application/json:
+              schema:
+                properties:
+                  statusCode:
+                    type: number
+                    example: 400
+                  message:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - email must be an email
+                  error:
+                    type: string
+                    example: Bad Request
+        '409':
+          description: ''
+          content:
+            application/json:
+              schema:
+                properties:
+                  statusCode:
+                    type: number
+                    example: 409
+                  errorCode:
+                    type: string
+                    example: UserAlreadyExists
+                  message:
+                    type: string
+                    example: User already exists with email john.doe@example.com
+      summary: Register a new user
+      tags:
+        - Users
+  /users/me:
+    get:
+      operationId: UserController_profile
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                properties:
+                  id:
+                    type: string
+                    example: 550e8400-e29b-41d4-a716-446655440000
+                  email:
+                    type: string
+                    example: john.doe@example.com
+                  firstName:
+                    type: string
+                    example: John
+                  lastName:
+                    type: string
+                    example: Doe
+        '401':
+          description: Missing or invalid JWT token
+          content:
+            application/json:
+              schema:
+                properties:
+                  statusCode:
+                    type: number
+                    example: 401
+                  message:
+                    type: string
+                    example: Unauthorized
+                  error:
+                    type: string
+                    example: Unauthorized
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                properties:
+                  statusCode:
+                    type: number
+                    example: 404
+                  errorCode:
+                    type: string
+                    example: EntityNotFound
+                  message:
+                    type: string
+                    example: >-
+                      Entity not found with id
+                      550e8400-e29b-41d4-a716-446655440000
+      security:
+        - bearer: []
+      summary: Get current user profile
+      tags:
+        - Users
+  /auth/login:
+    post:
+      operationId: AuthController_login
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginUserDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                properties:
+                  accessToken:
+                    type: string
+        '400':
+          description: ''
+          content:
+            application/json:
+              schema:
+                properties:
+                  statusCode:
+                    type: number
+                    example: 400
+                  message:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - email must be an email
+                  error:
+                    type: string
+                    example: Bad Request
+        '401':
+          description: ''
+          content:
+            application/json:
+              schema:
+                properties:
+                  statusCode:
+                    type: number
+                    example: 401
+                  errorCode:
+                    type: string
+                    example: InvalidCredentials
+                  message:
+                    type: string
+                    example: Invalid credentials provided.
+      summary: Login with email and password
+      tags:
+        - Auth
+info:
+  title: API
+  description: ''
+  version: '1.0'
+  contact: {}
+tags: []
+servers: []
+components:
+  securitySchemes:
+    bearer:
+      scheme: bearer
+      bearerFormat: JWT
+      type: http
+  schemas:
+    RegisterUserDto:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        password:
+          type: string
+          minLength: 8
+          example: password123
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+      required:
+        - email
+        - password
+        - firstName
+        - lastName
+    LoginUserDto:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        password:
+          type: string
+          example: password123
+      required:
+        - email
+        - password

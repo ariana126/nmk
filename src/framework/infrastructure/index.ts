@@ -6,3 +6,7 @@ export { HttpExceptionFilter } from './http/exception.filter';
 export { JwtAuthGuard } from './http/jwt-auth.guard';
 export { AuthenticatedUser } from './http/decorators/authenticated-user';
 export { CurrentUser } from './http/decorators/current-user.decorator';
+export {
+  ValidationErrorSchema,
+  domainErrorSchema,
+} from './http/swagger/error-schemas';
