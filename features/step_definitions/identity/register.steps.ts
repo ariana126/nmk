@@ -79,7 +79,9 @@ Then(
       `Expected login to succeed (HTTP 200) but got ${loginResponse.status}. Body: ${JSON.stringify(loginResponse.body)}`,
     );
 
-    this.accessToken = (loginResponse.body as { accessToken: string }).accessToken;
+    this.accessToken = (
+      loginResponse.body as { accessToken: string }
+    ).accessToken;
   },
 );
 
@@ -101,7 +103,7 @@ Then(
       `Expected 200 but got ${profileResponse.status}. Body: ${JSON.stringify(profileResponse.body)}`,
     );
 
-    const expected = dataTable.rowsHash() as Record<string, string>;
+    const expected = dataTable.rowsHash();
     const body = profileResponse.body as Record<string, unknown>;
 
     assert.deepEqual(
@@ -113,7 +115,9 @@ Then(
     for (const [field, value] of Object.entries(expected)) {
       if (value === '<present>') {
         assert.ok(
-          body[field] !== undefined && body[field] !== null && body[field] !== '',
+          body[field] !== undefined &&
+            body[field] !== null &&
+            body[field] !== '',
           `Expected profile.${field} to be present but got "${body[field]}"`,
         );
       } else {

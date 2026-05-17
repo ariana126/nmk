@@ -12,9 +12,12 @@ import { RegisterUserDto } from './dto/register-user.dto';
 import { RegisterUserCommand } from '@identity/application/commands/register-user/register-user.command';
 import { Email } from '@framework/domain';
 import { GetUserByIdQuery } from '@identity/application/queries/get-user-by-id/get-user-by-id.query';
-import { JwtAuthGuard } from '@identity/infrastructure/http/guards/jwt-auth.guard';
-import { CurrentUser } from '@identity/infrastructure/http/decorators/current-user.decorator';
-import { AuthenticatedUser } from '@identity/infrastructure/http/decorators/authenticated-user';
+import {
+  JwtAuthGuard,
+  CurrentUser,
+  AuthenticatedUser,
+} from '@framework/infrastructure';
+import { UserReadModel } from '@identity/application/queries/get-user-by-id/user.read-model';
 
 @Controller('users')
 export class UserController {
@@ -40,7 +43,7 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   async profile(
     @CurrentUser() user: AuthenticatedUser,
-  ): Promise<{ firstName: string; lastName: string; email: string }> {
+  ): Promise<UserReadModel> {
     return await this.queryBus.execute(new GetUserByIdQuery(user.id));
   }
 }
