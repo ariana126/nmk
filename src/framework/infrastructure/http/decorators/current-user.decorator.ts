@@ -6,7 +6,8 @@ import { AuthenticatedUser } from './authenticated-user';
 export const CurrentUser = createParamDecorator(
   (_data: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest<Request>();
-    const payload = (request as any).user as { sub: string };
+    const authedRequest = request as Request & { user: { sub: string } };
+    const payload = authedRequest.user;
     return new AuthenticatedUser(Identity.fromString(payload.sub));
   },
 );

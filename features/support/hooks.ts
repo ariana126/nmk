@@ -1,5 +1,6 @@
 import { Before, After, BeforeAll } from '@cucumber/cucumber';
 import { execSync } from 'child_process';
+import type { Server } from 'http';
 import { Test } from '@nestjs/testing';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '@framework/infrastructure';
@@ -19,7 +20,7 @@ Before(async function (this: AppWorld) {
   this.app = moduleRef.createNestApplication();
   configureApp(this.app);
   await this.app.init();
-  this.client = supertest(this.app.getHttpServer());
+  this.client = supertest(this.app.getHttpServer() as Server);
 
   const prisma = moduleRef.get(PrismaService);
   const tables = await prisma.$queryRaw<Array<{ tablename: string }>>`

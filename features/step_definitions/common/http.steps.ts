@@ -36,10 +36,11 @@ Then(
 
     const body = this.response.body as Record<string, unknown>;
 
-    const type = String(body['type'] ?? '');
+    const type = typeof body['type'] === 'string' ? body['type'] : '';
     const prefix = 'https://my-api-doc.dev/problems/';
     assert.ok(
-      type === 'about:blank' || (type.startsWith(prefix) && type.length > prefix.length),
+      type === 'about:blank' ||
+        (type.startsWith(prefix) && type.length > prefix.length),
       `Expected "type" to be "about:blank" or "https://my-api-doc.dev/problems/<uri>". Body: ${JSON.stringify(body)}`,
     );
     assert.ok(
@@ -64,7 +65,7 @@ Then(
     const fields = table.raw().map(([field]) => field);
 
     const body = this.response.body as {
-      type?: unknown;
+      type?: string;
       errors?: Array<{ field: string; message: string }>;
     };
 

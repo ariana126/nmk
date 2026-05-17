@@ -11,7 +11,6 @@ Given(
   function (this: AppWorld, _email: string) {
     // No-op: black-box testing means we cannot delete records directly.
     // Database cleanup between scenarios must be handled in the Before hook
-    // (see the TODO comment in features/support/hooks.ts).
   },
 );
 
@@ -99,13 +98,13 @@ Then(
           body[field] !== undefined &&
             body[field] !== null &&
             body[field] !== '',
-          `Expected profile.${field} to be present but got "${body[field]}"`,
+          `Expected profile.${field} to be present but got ${JSON.stringify(body[field])}`,
         );
       } else {
         assert.equal(
           body[field],
           value,
-          `Expected profile.${field} to be "${value}" but got "${body[field]}"`,
+          `Expected profile.${field} to be "${value}" but got ${JSON.stringify(body[field])}`,
         );
       }
     }
@@ -134,7 +133,7 @@ Then(
 Then(
   'the response body should contain an error indicating the email is taken',
   function (this: AppWorld) {
-    const body = this.response.body as { type?: unknown };
+    const body = this.response.body as { type?: string };
 
     assert.equal(
       String(body.type ?? ''),

@@ -11,7 +11,9 @@ import { IdentityModule } from '@identity/infrastructure/identity.module';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         pinoHttp: {
-          level: config.get('LOG_LEVEL') ?? (config.get('NODE_ENV') === 'production' ? 'info' : 'debug'),
+          level:
+            config.get('LOG_LEVEL') ??
+            (config.get('NODE_ENV') === 'production' ? 'info' : 'debug'),
           transport:
             config.get('NODE_ENV') !== 'production'
               ? { target: 'pino-pretty', options: { singleLine: true } }
