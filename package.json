@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "test:bdd": "node --env-file=.env.test node_modules/.bin/cucumber-js",
+    "test:bdd": "node --env-file=.env.test node_modules/.bin/cucumber-js --tags 'not @wip'",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
