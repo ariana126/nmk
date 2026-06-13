@@ -8,7 +8,7 @@
   "scripts": {
     "test:bdd": "node --env-file=.env.test node_modules/.bin/cucumber-js --tags 'not @wip'",
     "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\" \"features/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
