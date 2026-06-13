@@ -1,4 +1,4 @@
-import { Given, When, Then, DataTable } from '@cucumber/cucumber';
+import { Given, Then, DataTable } from '@cucumber/cucumber';
 import * as assert from 'node:assert/strict';
 import { AppWorld } from '../../support/world';
 
@@ -27,18 +27,6 @@ Given(
       email,
       password: 'SeedPass999!',
     });
-  },
-);
-
-// ---------------------------------------------------------------------------
-// Action steps
-// ---------------------------------------------------------------------------
-
-When(
-  'I register with the following details:',
-  async function (this: AppWorld, dataTable: DataTable) {
-    const fields = dataTable.rowsHash();
-    this.response = await this.client.post('/api/users').send(fields);
   },
 );
 
