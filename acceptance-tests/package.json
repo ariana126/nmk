@@ -1,0 +1,20 @@
+{
+  "name": "acceptance-tests",
+  "version": "0.0.1",
+  "description": "Black-box BDD acceptance tests, run against a live backend instance.",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "test": "node --env-file=.env node_modules/.bin/cucumber-js --tags 'not @wip'"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "^12.8.3",
+    "@types/node": "^24.12.3",
+    "@types/pg": "^8.15.6",
+    "@types/supertest": "^7.2.0",
+    "pg": "^8.16.3",
+    "supertest": "^7.2.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}

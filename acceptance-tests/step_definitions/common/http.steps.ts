@@ -7,7 +7,7 @@ import { AppWorld } from '../../support/world';
 // ---------------------------------------------------------------------------
 
 Given('the application is running', function (this: AppWorld) {
-  // No-op: the app is started in the Before hook (features/support/hooks.ts).
+  // No-op: the app is started in the Before hook (support/hooks.ts).
 });
 
 // ---------------------------------------------------------------------------

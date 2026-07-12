@@ -11,7 +11,6 @@ npm run lint             # ESLint + auto-fix
 npm test                 # Jest unit tests (src/**/*.spec.ts)
 npm run test:watch       # Jest in watch mode
 npm run test:cov         # Jest with coverage
-npm run test:bdd         # Cucumber BDD tests (loads .env.test)
 npm run db:migrate       # Apply Prisma migrations
 npm run db:generate-client  # Regenerate Prisma client
 npm run swagger:generate # Build + export OpenAPI spec
@@ -20,11 +19,6 @@ npm run swagger:generate # Build + export OpenAPI spec
 Run a single Jest test file:
 ```bash
 npx jest path/to/file.spec.ts
-```
-
-Run a single Cucumber scenario by tag:
-```bash
-npx cucumber-js --tags "@tag-name"
 ```
 
 ## Architecture
@@ -78,16 +72,6 @@ Chain: `HttpExceptionFilter` → iterates `ExceptionMapper[]` → first mapper t
 To add a new domain exception:
 1. Create exception class extending `ApplicationException` in `application/exceptions/`.
 2. Add a case to the module's `ExceptionMapper` in `infrastructure/http/exception.mapper.ts`.
-
-The `type` URI field (not `detail`) is the canonical identifier for problem types in BDD assertions.
-
-### BDD Tests (`features/`)
-
-- Feature files: `features/specs/<domain>/*.feature`
-- Steps: `features/step_definitions/<domain>/*.steps.ts` + `features/step_definitions/common/http.steps.ts`
-- `AppWorld` (`features/support/world.ts`) holds `app`, `client`, `response`, `accessToken`.
-- `Before` hook bootstraps a fresh NestApp and truncates all DB tables (except `_prisma_migrations`) per scenario.
-- Tests are **black-box HTTP only** — no direct service calls in steps.
 
 ### Path Aliases
 
