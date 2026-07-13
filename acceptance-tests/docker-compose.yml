@@ -1,0 +1,12 @@
+name: nmk-acceptance-tests
+
+services:
+  app:
+    build: .
+    init: true
+    network_mode: host
+    env_file:
+      - .env
+    volumes:
+      - ./:/app
+      - /app/node_modules
