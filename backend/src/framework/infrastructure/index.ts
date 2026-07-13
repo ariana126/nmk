@@ -1,4 +1,5 @@
 export { AuthModule } from './http/auth.module';
+export { TestingModule } from './http/testing/testing.module';
 export { PrismaModule } from './persistence/prisma.module';
 export { PrismaService } from './persistence/prisma.service';
 export { PrismaEntityRepository } from './persistence/prisma.repository';
