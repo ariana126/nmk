@@ -4,19 +4,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
+The app runs in Docker; the Makefile wraps Docker Compose. Prerequisites: Docker, Docker Compose, `make`.
+
 ```bash
-npm run start:dev        # Start with hot reload (port 3000)
-npm run build            # Compile TypeScript
-npm run lint             # ESLint + auto-fix
-npm test                 # Jest unit tests (src/**/*.spec.ts)
-npm run test:watch       # Jest in watch mode
-npm run test:cov         # Jest with coverage
-npm run db:migrate       # Apply Prisma migrations
-npm run db:generate-client  # Regenerate Prisma client
-npm run swagger:generate # Build + export OpenAPI spec
+make up                  # build (if needed) and start app + db in the background
+make down                # stop and remove containers
+make logs                # tail logs from all containers
+make sh                  # open a shell in the app container
+make npm <script>        # run any package.json script inside the container
+make help                # list all available make targets
 ```
 
-Run a single Jest test file:
+Common scripts via `make npm <script>`:
+```bash
+make npm start:dev           # (already running via `make up`) hot reload on port 3000
+make npm lint                # ESLint + auto-fix
+make npm test                # Jest unit tests (src/**/*.spec.ts)
+make npm test:cov            # Jest with coverage
+make npm db:migrate          # apply Prisma migrations (manual step after `make up`)
+make npm db:generate-client  # regenerate Prisma client
+make npm swagger:generate    # build + export OpenAPI spec
+```
+
+Run a single Jest test file (from a shell inside the container via `make sh`):
 ```bash
 npx jest path/to/file.spec.ts
 ```
@@ -54,6 +64,7 @@ src/modules/<domain>/
 - **`Identity`** / **`Email`** — core value objects; use `Identity.new()` and `Email.fromString()`.
 - **`EntityRepository<T>`** — abstract base: `find`, `get` (throws if missing), `save`.
 - **`PrismaEntityRepository<Domain, Prisma>`** — concrete Prisma base; subclasses implement `toDomain()` and `toPersistence()`.
+- **`AuthModule`** — global module providing `JwtModule` (configured from `JWT_SECRET`) and `JwtAuthGuard`; imported once in `AppModule`, available everywhere without re-importing.
 
 ### Request Flow
 
@@ -72,6 +83,19 @@ Chain: `HttpExceptionFilter` → iterates `ExceptionMapper[]` → first mapper t
 To add a new domain exception:
 1. Create exception class extending `ApplicationException` in `application/exceptions/`.
 2. Add a case to the module's `ExceptionMapper` in `infrastructure/http/exception.mapper.ts`.
+
+### Testing
+
+Two independent test layers:
+
+- **Unit tests** — Jest, co-located `*.spec.ts` files next to the code they test. Run via `make npm test`.
+- **Acceptance tests** — black-box BDD suite in the sibling `../acceptance-tests` project (Cucumber). `*.feature` specs live under `specs/<module>/`, step definitions under `step_definitions/`. Runs against a live backend + Postgres instance (its own Docker Compose stack), via `make run` / `npm test` inside `acceptance-tests/`.
+
+The backend exposes testing-support endpoints (`TestingModule`, `src/framework/infrastructure/http/testing/`) used only by the acceptance suite's Cucumber hooks (`acceptance-tests/support/hooks.ts`) to apply migrations and reset DB state between scenarios:
+- `POST /api/testing/migrations` — runs `prisma migrate deploy`.
+- `POST /api/testing/truncate` — truncates all application tables.
+
+`TestingModule` is only imported into `AppModule` when `NODE_ENV !== 'production'` — it is never reachable in production.
 
 ### Path Aliases
 

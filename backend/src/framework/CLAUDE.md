@@ -97,6 +97,16 @@ Sets `Content-Type: application/problem+json` on the response.
 ### `JwtAuthGuard`
 Validates the `Authorization: Bearer <token>` header using `JwtService`. Injects `{ sub: userId }` on the request object. Throws `UnauthorizedException` on missing or invalid tokens.
 
+### `AuthModule` (`http/auth.module.ts`)
+`@Global()` module, imported once in `AppModule`. Registers `JwtModule` asynchronously via `ConfigService.getOrThrow('JWT_SECRET')` (1h token expiry). Provides and exports `JwtAuthGuard` and `JwtModule` — available everywhere without re-importing.
+
+### `TestingModule` / `TestingController` / `TestingService` (`http/testing/`)
+Testing-support HTTP endpoints consumed only by the BDD acceptance suite (`../../acceptance-tests`), not by application code:
+- `POST /testing/migrations` — runs `prisma migrate deploy` via `execFile`.
+- `POST /testing/truncate` — queries `pg_tables` for the `public` schema (excluding `_prisma_migrations`) and truncates them all with `RESTART IDENTITY CASCADE`.
+
+`AppModule` imports `TestingModule` only when `process.env.NODE_ENV !== 'production'` — never mounted in production.
+
 ### `AuthenticatedUser` + `@CurrentUser()` decorator
 `AuthenticatedUser` holds `id: Identity`. The `@CurrentUser()` parameter decorator extracts `request.user.sub` and wraps it in an `AuthenticatedUser` instance.
 

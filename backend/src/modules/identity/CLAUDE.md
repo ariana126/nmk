@@ -71,6 +71,13 @@ Both extend `ApplicationException` from `@framework/application`.
 | `JwtTokenService` | `TokenService` (delegates to NestJS `JwtService`) |
 
 ### HTTP (`infrastructure/http/`)
+
+| Controller | Route | Handler |
+|------------|-------|---------|
+| `AuthController` | `POST /auth/login` | `LoginCommand` |
+| `UserController` | `POST /users` | `RegisterUserCommand` |
+| `UserController` | `GET /users/me` (behind `JwtAuthGuard`) | `GetUserByIdQuery` |
+
 **`IdentityExceptionMapper`** implements `ExceptionMapper`:
 - `UserAlreadyExists` → `ProblemDetail` 409, type `user-already-exists`, includes `email` in extension members.
 - `InvalidCredentials` → `ProblemDetail` 401, type `invalid-credentials`.
