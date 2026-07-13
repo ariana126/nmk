@@ -82,22 +82,18 @@ Structured JSON logging is provided by `nestjs-pino`. Sensitive fields (`authori
 
 ## Getting Started
 
-**Prerequisites:** Node.js, PostgreSQL running locally.
+**Prerequisites:** Docker, Docker Compose, and `make`.
 
 ```bash
-# 1. Install dependencies
-npm install
-
-# 2. Configure environment
-cp .env.example .env
-# Fill in DATABASE_URL and JWT_SECRET in .env
-
-# 3. Run database migrations
-npm run db:migrate
-
-# 4. Start the dev server
-npm run start:dev
+make up              # builds images and starts app + db (creates .env on first run)
+make npm db:migrate  # apply database migrations (manual step)
 ```
+
+The app runs at http://localhost:3000 with hot reload — edit files under `src/` and see changes live.
+Swagger docs: http://localhost:3000/api-docs. Prisma Studio: `make npm db:studio` (http://localhost:5555).
+
+Run `make help` to see all available commands, or `make npm <script>` to run any script from
+the table below inside the container.
 
 ---
 
