@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down restart build logs ps sh test npm
+.PHONY: help setup up down restart build logs ps sh run report npm
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -30,6 +30,9 @@ sh: ## Open a shell in the container
 
 run: ## Run the BDD acceptance suite (requires the backend stack to be running)
 	docker compose exec app npm test
+
+report: ## Render the Serenity BDD report from the last run into target/site/serenity
+	docker compose exec app npm run report
 
 npm: ## Run any package.json script in the container. Usage: make npm test
 	docker compose exec app npm run $(filter-out $@,$(MAKECMDGOALS))

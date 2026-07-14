@@ -1,15 +1,36 @@
-import { Before, BeforeAll } from '@cucumber/cucumber';
-import supertest from 'supertest';
-import { AppWorld } from './world';
+import { Before, BeforeAll, setDefaultTimeout } from '@cucumber/cucumber';
+import { configure, engage } from '@serenity-js/core';
+import { Actors } from './actors';
+import { apiBaseUrl } from './config';
 
-const BASE_URL = process.env.BASE_URL ?? 'http://localhost:3000';
+setDefaultTimeout(10_000);
+
+const callTestingEndpoint = async (endpoint: string): Promise<void> => {
+  const url = `${apiBaseUrl}testing/${endpoint}`;
+  const response = await fetch(url, { method: 'POST' });
+  if (!response.ok) {
+    throw new Error(`Failed to call ${url}: HTTP ${response.status}`);
+  }
+};
 
 BeforeAll(async function () {
-  await supertest(BASE_URL).post('/api/testing/migrations').expect(204);
+  configure({
+    crew: [
+      '@serenity-js/console-reporter',
+      '@serenity-js/serenity-bdd',
+      [
+        '@serenity-js/core:ArtifactArchiver',
+        { outputDirectory: 'target/site/serenity' },
+      ],
+    ],
+  });
+
+  await callTestingEndpoint('migrations');
 });
 
-Before(async function (this: AppWorld) {
-  await supertest(BASE_URL).post('/api/testing/truncate').expect(204);
+Before(async function () {
+  await callTestingEndpoint('truncate');
 
-  this.client = supertest(BASE_URL);
+  // A new cast per scenario, so every actor starts with a fresh, empty notepad.
+  engage(new Actors(apiBaseUrl));
 });
