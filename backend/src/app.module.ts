@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 import {
   AuthModule,
+  HealthModule,
   PrismaModule,
   TestingModule,
 } from '@framework/infrastructure';
@@ -37,6 +38,7 @@ import { IdentityModule } from '@identity/infrastructure/identity.module';
     }),
     AuthModule,
     PrismaModule,
+    HealthModule,
     ...(process.env.NODE_ENV !== 'production' ? [TestingModule] : []),
     IdentityModule,
   ],

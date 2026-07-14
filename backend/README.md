@@ -89,6 +89,10 @@ make up              # builds images and starts app + db (creates .env on first 
 make npm db:migrate  # apply database migrations (manual step)
 ```
 
+`make up` waits until both containers are healthy before it returns, so the API is guaranteed to be
+answering by the time you run the next command. Health is reported by `GET /api/health`, a public
+liveness probe that returns `200 {"status":"ok"}`.
+
 The app runs at http://localhost:3000 with hot reload — edit files under `src/` and see changes live.
 Swagger docs: http://localhost:3000/api-docs. Prisma Studio: `make npm db:studio` (http://localhost:5555).
 

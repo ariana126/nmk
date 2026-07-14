@@ -100,6 +100,14 @@ Validates the `Authorization: Bearer <token>` header using `JwtService`. Injects
 ### `AuthModule` (`http/auth.module.ts`)
 `@Global()` module, imported once in `AppModule`. Registers `JwtModule` asynchronously via `ConfigService.getOrThrow('JWT_SECRET')` (1h token expiry). Provides and exports `JwtAuthGuard` and `JwtModule` — available everywhere without re-importing.
 
+### `HealthModule` / `HealthController` (`http/health/`)
+Liveness probe consumed by the Docker Compose healthcheck for the `app` service:
+- `GET /health` — returns `200 {"status":"ok"}`.
+
+Deliberately dependency-free: it does not query the database, so it reports whether the HTTP server is
+answering, not whether Postgres is reachable (the `db` service has its own `pg_isready` healthcheck).
+`AppModule` imports it unconditionally — unlike `TestingModule`, it is mounted in production too.
+
 ### `TestingModule` / `TestingController` / `TestingService` (`http/testing/`)
 Testing-support HTTP endpoints consumed only by the BDD acceptance suite (`../../acceptance-tests`), not by application code:
 - `POST /testing/migrations` — runs `prisma migrate deploy` via `execFile`.

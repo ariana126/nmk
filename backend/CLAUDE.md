@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 The app runs in Docker; the Makefile wraps Docker Compose. Prerequisites: Docker, Docker Compose, `make`.
 
 ```bash
-make up                  # build (if needed) and start app + db in the background
+make up                  # build (if needed) and start app + db, waiting until both are healthy
 make down                # stop and remove containers
 make logs                # tail logs from all containers
 make sh                  # open a shell in the app container
@@ -30,6 +30,9 @@ Run a single Jest test file (from a shell inside the container via `make sh`):
 ```bash
 npx jest path/to/file.spec.ts
 ```
+
+`make up` passes `--wait` to Docker Compose, so it only returns once both containers report healthy —
+the `db` service via `pg_isready`, the `app` service via the `GET /api/health` liveness probe.
 
 ## Architecture
 
@@ -106,6 +109,8 @@ Structured JSON logging via `nestjs-pino`. Sensitive fields (`authorization`, `p
 ### API Conventions
 
 - All routes are prefixed with `/api`.
+- `GET /api/health` — public liveness probe (`HealthModule`, mounted in every environment). Returns
+  `200 {"status":"ok"}`; it touches no dependencies, so it stays `200` even when the database is down.
 - Auth routes use Bearer JWT in `Authorization` header.
 - `@CurrentUser()` decorator extracts the authenticated user from the request.
 - Swagger UI available at `/api-docs` in non-production environments.

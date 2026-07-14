@@ -8,8 +8,8 @@ help: ## Show available commands
 setup: ## Create .env from .env.example if it doesn't exist yet
 	@[ -f .env ] || cp .env.example .env
 
-up: setup ## Build (if needed) and start app + db in the background
-	docker compose up --build -d
+up: setup ## Build (if needed) and start app + db in the background, waiting until both are healthy
+	docker compose up --build -d --wait
 
 down: ## Stop and remove the containers
 	docker compose down
