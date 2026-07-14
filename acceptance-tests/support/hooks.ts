@@ -31,6 +31,6 @@ BeforeAll(async function () {
 Before(async function () {
   await callTestingEndpoint('truncate');
 
-  // A new cast per scenario, which also means a new (empty) shared notepad.
+  // A new cast per scenario, so every actor starts with a fresh, empty notepad.
   engage(new Actors(apiBaseUrl));
 });
