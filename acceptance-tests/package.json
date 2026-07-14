@@ -5,15 +5,19 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "test": "node --env-file=.env node_modules/.bin/cucumber-js --tags 'not @wip'"
+    "test": "node --env-file=.env node_modules/.bin/cucumber-js --tags 'not @wip'",
+    "report": "serenity-bdd run --features-directory specs"
   },
   "devDependencies": {
     "@cucumber/cucumber": "^12.8.3",
+    "@serenity-js/assertions": "^3.44.1",
+    "@serenity-js/console-reporter": "^3.44.1",
+    "@serenity-js/core": "^3.44.1",
+    "@serenity-js/cucumber": "^3.44.1",
+    "@serenity-js/rest": "^3.44.1",
+    "@serenity-js/serenity-bdd": "^3.44.1",
     "@types/node": "^24.12.3",
-    "@types/pg": "^8.15.6",
-    "@types/supertest": "^7.2.0",
-    "pg": "^8.16.3",
-    "supertest": "^7.2.2",
+    "axios": "^1.18.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
   }

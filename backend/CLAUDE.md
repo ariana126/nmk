@@ -89,7 +89,7 @@ To add a new domain exception:
 Two independent test layers:
 
 - **Unit tests** — Jest, co-located `*.spec.ts` files next to the code they test. Run via `make npm test`.
-- **Acceptance tests** — black-box BDD suite in the sibling `../acceptance-tests` project (Cucumber). `*.feature` specs live under `specs/<module>/`, step definitions under `step_definitions/`. Runs against a live backend + Postgres instance (its own Docker Compose stack), via `make run` / `npm test` inside `acceptance-tests/`.
+- **Acceptance tests** — black-box BDD suite in the sibling `../acceptance-tests` project (Cucumber). `*.feature` specs live under `specs/<module>/`, step definitions under `step-definitions/`. Runs against a live backend + Postgres instance (its own Docker Compose stack), via `make run` / `npm test` inside `acceptance-tests/`.
 
 The backend exposes testing-support endpoints (`TestingModule`, `src/framework/infrastructure/http/testing/`) used only by the acceptance suite's Cucumber hooks (`acceptance-tests/support/hooks.ts`) to apply migrations and reset DB state between scenarios:
 - `POST /api/testing/migrations` — runs `prisma migrate deploy`.

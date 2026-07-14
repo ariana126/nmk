@@ -2,10 +2,10 @@ module.exports = {
     default: {
         paths: ['specs/**/*.feature'],
         require: [
-            'support/*.ts',
-            'step_definitions/**/*.steps.ts',
+            'support/**/*.ts',
+            'step-definitions/**/*.steps.ts',
         ],
         requireModule: ['ts-node/register'],
-        format: ['progress-bar', 'html:reports/bdd.html'],
+        format: ['@serenity-js/cucumber'],
     },
 };
