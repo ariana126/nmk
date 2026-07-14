@@ -1,0 +1,39 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What this is
+
+A monorepo of independent projects, each with its own Makefile, Docker Compose stack, and CLAUDE.md:
+
+- **`backend/`** — NestJS + Prisma + Postgres API (DDD + CQRS). Compose project `nmk-backend` (`app`, `db`).
+- **`acceptance-tests/`** — black-box BDD suite (Cucumber + Serenity/JS) driving the backend over HTTP. Compose project `nmk-acceptance-tests` (`app`).
+- **`frontend/`** — empty placeholder.
+
+**Read the subproject's own CLAUDE.md before working inside it.** This file covers only what is cross-cutting.
+
+## Commands
+
+The root Makefile orchestrates the subprojects by delegating to their Makefiles. It holds no logic of its own — behaviour lives in each subproject.
+
+```bash
+make up        # cold start every project (backend first, waits until healthy)
+make migrate   # apply Prisma migrations (manual step, not part of `make up`)
+make test      # run the acceptance suite (requires the stack to be running)
+make ps        # container status across all projects, in one table
+make down      # stop everything
+make reset     # stop everything and wipe the database volume
+make help      # list all targets
+```
+
+Reach a single project's Makefile with `<project>/<target>`: `make backend/sh`, `make backend/logs`, `make acceptance-tests/report`.
+
+Use the slash form, not `make backend up` — Make would read `up` as a second root goal and start every stack a second time. For the same reason, targets taking an argument (`make npm <script>`) have no passthrough; run them from the subproject, or use the dedicated root target where one exists (`make migrate`).
+
+`make up` does **not** migrate. The acceptance suite applies migrations itself (`POST /api/testing/migrations` in its `BeforeAll` hook), so `make test` is unaffected; run `make migrate` when driving the app by hand.
+
+## The dependency runs one way
+
+`acceptance-tests` drives `backend` over HTTP and knows nothing else about it — no importing backend code, no direct database access.
+
+**Backend code and docs must never reference the acceptance-tests project.** The root is the only place both are named. When adding a project to the root Makefile's `PROJECTS`, keep start-up order: anything that talks to the backend comes after it.
