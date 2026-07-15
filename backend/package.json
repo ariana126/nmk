@@ -22,7 +22,7 @@
     "db:migration:status": "prisma migrate status",
     "db:validate-config": "prisma validate",
     "db:format-config": "prisma format",
-    "db:studio": "prisma studio --port 5555 --browser none",
+    "db:studio": "prisma studio --port ${STUDIO_PORT:-5555} --browser none",
     "db:generate-client": "prisma generate",
     "postinstall": "prisma generate",
     "swagger:generate": "nest build && node -r tsconfig-paths/register dist/src/generate-swagger.js"

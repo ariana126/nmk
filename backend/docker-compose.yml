@@ -5,13 +5,12 @@ services:
     build: .
     init: true
     ports:
-      - "${PORT:-3000}:3000"
-      - "5555:5555"
+      - "${APP_PORT:-3000}:${APP_PORT:-3000}"
+      - "${STUDIO_PORT:-5555}:${STUDIO_PORT:-5555}"
     env_file:
       - .env
     environment:
-      NODE_ENV: development
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     volumes:
       - ./:/app
       - /app/node_modules
@@ -21,7 +20,7 @@ services:
           "CMD",
           "node",
           "-e",
-          "fetch('http://localhost:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+          "fetch('http://localhost:${APP_PORT:-3000}/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
         ]
       interval: 10s
       timeout: 5s

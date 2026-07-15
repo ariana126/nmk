@@ -39,7 +39,7 @@ import { IdentityModule } from '@identity/infrastructure/identity.module';
     AuthModule,
     PrismaModule,
     HealthModule,
-    ...(process.env.NODE_ENV !== 'production' ? [TestingModule] : []),
+    ...(process.env.NODE_ENV === 'test' ? [TestingModule] : []),
     IdentityModule,
   ],
   controllers: [],
