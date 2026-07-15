@@ -30,6 +30,8 @@ npx cucumber-js specs/registration/sign-up.feature   # one feature file
 npx cucumber-js specs/registration/sign-up.feature:20  # one scenario, by line number
 npx cucumber-js --tags '@wip'                        # only @wip scenarios
 npx tsc --noEmit                                     # typecheck
+npm run lint                                          # eslint --fix over the TS sources
+npm run format                                        # prettier --write over the TS sources
 ```
 
 **`@wip`** marks scenarios written ahead of the backend. `npm test` excludes them. No scenario carries the tag today — the suite is fully green against the current backend, and it should stay that way (see *Assertion conventions*).

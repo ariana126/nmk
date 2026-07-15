@@ -1,4 +1,10 @@
-import { Answerable, Question, QuestionAdapter, Task } from '@serenity-js/core';
+import {
+  Answerable,
+  d,
+  Question,
+  QuestionAdapter,
+  Task,
+} from '@serenity-js/core';
 import {
   contain,
   Ensure,
@@ -53,7 +59,7 @@ export const FieldsThatFailedValidation = (): QuestionAdapter<string[]> =>
  */
 export const EnsureValidationErrorFor = (field: Answerable<string>): Task =>
   Task.where(
-    `#actor ensures validation failed for ${field}`,
+    d`#actor ensures validation failed for ${field}`,
     EnsureProblemDetail(400, 'validation-error'),
     Ensure.that(FieldsThatFailedValidation(), contain(field)),
   );

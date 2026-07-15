@@ -32,7 +32,10 @@ Given("{actor} doesn't have an account", function (_actor: Actor) {
 });
 
 Given('{actor} already has an account', function (actor: Actor) {
-  return actor.attemptsTo(SignUp(signUpDetailsOf(actor.name)), EnsureSignedUp());
+  return actor.attemptsTo(
+    SignUp(signUpDetailsOf(actor.name)),
+    EnsureSignedUp(),
+  );
 });
 
 When('{pronoun} signs up', function (actor: Actor) {
@@ -86,11 +89,14 @@ Then('the sign-up should be rejected due to an invalid email', function () {
   return actorInTheSpotlight().attemptsTo(EnsureValidationErrorFor('email'));
 });
 
-Then('the sign-up should be rejected due to missing required data', function () {
-  return actorInTheSpotlight().attemptsTo(
-    EnsureValidationErrorFor(TheOmittedSignUpField()),
-  );
-});
+Then(
+  'the sign-up should be rejected due to missing required data',
+  function () {
+    return actorInTheSpotlight().attemptsTo(
+      EnsureValidationErrorFor(TheOmittedSignUpField()),
+    );
+  },
+);
 
 Then('{pronoun} should be able to login', function (actor: Actor) {
   return actor.attemptsTo(LogIn(TheirOwnCredentials()), EnsureLoggedIn());

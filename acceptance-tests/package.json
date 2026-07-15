@@ -6,10 +6,13 @@
   "license": "UNLICENSED",
   "scripts": {
     "test": "node --env-file=.env node_modules/.bin/cucumber-js --tags 'not @wip'",
-    "report": "serenity-bdd run --features-directory specs"
+    "report": "serenity-bdd run --features-directory specs",
+    "lint": "eslint \"{screenplay,step-definitions,support}/**/*.ts\" --fix",
+    "format": "prettier --write \"{screenplay,step-definitions,support}/**/*.ts\""
   },
   "devDependencies": {
     "@cucumber/cucumber": "^12.8.3",
+    "@eslint/js": "^9.18.0",
     "@serenity-js/assertions": "^3.44.1",
     "@serenity-js/console-reporter": "^3.44.1",
     "@serenity-js/core": "^3.44.1",
@@ -18,7 +21,13 @@
     "@serenity-js/serenity-bdd": "^3.44.1",
     "@types/node": "^24.12.3",
     "axios": "^1.18.1",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-prettier": "^5.2.2",
+    "globals": "^17.0.0",
+    "prettier": "^3.4.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0"
   }
 }

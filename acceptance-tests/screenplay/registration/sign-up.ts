@@ -1,4 +1,10 @@
-import { Answerable, notes, Question, QuestionAdapter, Task } from '@serenity-js/core';
+import {
+  Answerable,
+  notes,
+  Question,
+  QuestionAdapter,
+  Task,
+} from '@serenity-js/core';
 import { Ensure, equals } from '@serenity-js/assertions';
 import { LastResponse, PostRequest, Send } from '@serenity-js/rest';
 import { AccountNotes, TheDetailsTheySignedUpWith } from '../common/notes';
