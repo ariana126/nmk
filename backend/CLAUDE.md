@@ -87,6 +87,15 @@ To add a new domain exception:
 1. Create exception class extending `ApplicationException` in `application/exceptions/`.
 2. Add a case to the module's `ExceptionMapper` in `infrastructure/http/exception.mapper.ts`.
 
+### Architecture linting
+
+The DDD + CQRS layer boundaries are enforced by **dependency-cruiser** (`.dependency-cruiser.cjs`).
+Run `make npm depcruise`. The rules forbid cycles, keep the `domain` layer pure (no
+`application`/`infrastructure`, no NestJS/Prisma), stop `application` reaching into
+`infrastructure`, keep `framework` free of feature modules, and keep modules from importing each
+other. One documented exception is whitelisted: `HttpExceptionFilter` composes the module
+exception mappers (see `src/framework/CLAUDE.md`).
+
 ### Testing
 
 **Unit tests** — Jest, co-located `*.spec.ts` files next to the code they test. Run via `make npm test`.
