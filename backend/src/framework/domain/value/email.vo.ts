@@ -7,7 +7,7 @@ export class Email extends ValueObject {
 
   static fromString(email: string): Email {
     const normalized = email.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+    if (!/^[^\s@]+@(?:[^\s@.]+\.)+[^\s@.]+$/.test(normalized)) {
       throw new Error(`Invalid email address: ${email}`);
     }
     return new Email(normalized);
