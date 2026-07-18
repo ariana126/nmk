@@ -1,11 +1,10 @@
+import { IdentityExceptionMapper } from '@identity/infrastructure/http/exception.mapper';
 import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
 import { Response } from 'express';
-import {
-  FrameworkExceptionMapper,
-  ProblemDetail,
-} from '@framework/infrastructure';
-import { ExceptionMapper } from '@framework/infrastructure';
-import { IdentityExceptionMapper } from '@identity/infrastructure/http/exception.mapper';
+
+import { FrameworkExceptionMapper } from './exception.mapper';
+import { ExceptionMapper } from './exception-mapper.interface';
+import { ProblemDetail } from './problem-detail';
 
 const ExceptionMappers: ExceptionMapper[] = [
   new FrameworkExceptionMapper(),

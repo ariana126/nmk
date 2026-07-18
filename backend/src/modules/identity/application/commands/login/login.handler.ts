@@ -1,9 +1,9 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { LoginCommand } from '@identity/application/commands/login/login.command';
-import { UserRepository } from '@identity/domain/service/user.repository';
+import { InvalidCredentials } from '@identity/application/exceptions';
 import { PasswordHasher } from '@identity/domain/service/password-hasher';
 import { TokenService } from '@identity/domain/service/token.service';
-import { InvalidCredentials } from '@identity/application/exceptions';
+import { UserRepository } from '@identity/domain/service/user.repository';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
 @CommandHandler(LoginCommand)
 export class LoginHandler implements ICommandHandler<LoginCommand> {

@@ -1,12 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import { User as PrismaUser } from '@prisma/client';
+import { Email } from '@framework/domain';
 import { PrismaEntityRepository } from '@framework/infrastructure';
 import { PrismaService } from '@framework/infrastructure';
 import { UserRepository } from '@identity/domain/service/user.repository';
-import { Email } from '@framework/domain';
 import { User } from '@identity/domain/user.aggregate';
-import { UserMapper } from './user.mapper';
+import { Injectable } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
+import { User as PrismaUser } from '@prisma/client';
+
+import { UserMapper } from './user.mapper';
 
 @Injectable()
 export class PrismaUserRepository

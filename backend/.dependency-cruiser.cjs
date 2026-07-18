@@ -58,6 +58,19 @@ module.exports = {
       to: { path: '^src/modules/' },
     },
     {
+      name: 'no-own-package-barrel',
+      comment:
+        'A file must not import its own package barrel (index.ts): it creates an ' +
+        'index-routed re-export cycle whose load order is fragile and breaks under import ' +
+        'sorting (see the FrameworkExceptionMapper crash). Import sibling files directly.',
+      severity: 'error',
+      from: {
+        path: '^src/framework/(domain|application|infrastructure)/.+',
+        pathNot: '/index\\.ts$',
+      },
+      to: { path: '^src/framework/$1/index\\.ts$' },
+    },
+    {
       name: 'modules-isolated',
       comment:
         'A feature module must not import another module internally. Cross-module ' +

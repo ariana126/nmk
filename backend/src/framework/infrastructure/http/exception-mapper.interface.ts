@@ -1,4 +1,4 @@
-import { ProblemDetail } from '@framework/infrastructure';
+import { ProblemDetail } from './problem-detail';
 
 export interface ExceptionMapper {
   canMap(exception: unknown): boolean;

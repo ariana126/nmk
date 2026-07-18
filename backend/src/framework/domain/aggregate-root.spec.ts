@@ -1,6 +1,6 @@
-import { Identity } from './value/identity.vo';
 import { AggregateRoot } from './aggregate-root';
 import { DomainEvent } from './domain-event';
+import { Identity } from './value/identity.vo';
 
 class TestEvent implements DomainEvent {}
 class AnotherEvent implements DomainEvent {}

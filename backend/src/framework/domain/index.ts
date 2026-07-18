@@ -1,9 +1,9 @@
-export { Entity } from './entity';
-export { ValueObject } from './value-object';
 export { AggregateRoot } from './aggregate-root';
 export type { DomainEvent } from './domain-event';
-export { Identity } from './value/identity.vo';
-export { Email } from './value/email.vo';
-export { EntityRepository } from './service/entity.repository';
+export { Entity } from './entity';
 export { DomainException } from './exception/domain.exception';
 export { EntityNotFound } from './exception/entity-not-found.exception';
+export { EntityRepository } from './service/entity.repository';
+export { Email } from './value/email.vo';
+export { Identity } from './value/identity.vo';
+export { ValueObject } from './value-object';

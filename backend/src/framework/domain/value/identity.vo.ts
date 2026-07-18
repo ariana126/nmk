@@ -1,4 +1,5 @@
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
+
 import { ValueObject } from '../value-object';
 
 export class Identity extends ValueObject {

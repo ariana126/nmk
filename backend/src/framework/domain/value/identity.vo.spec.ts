@@ -24,7 +24,7 @@ describe('Identity', () => {
   });
 
   it('a whitespace-only string is rejected', () => {
-    expect(() => Identity.fromString('   ')).toThrow();
+    expect(() => Identity.fromString(' '.repeat(3))).toThrow();
   });
 
   it('two identities with the same value are equal', () => {

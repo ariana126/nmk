@@ -28,9 +28,9 @@ export class ProblemDetail {
   public asResponseBody(): Record<string, unknown> {
     return {
       type:
-        BLANK_TYPE !== this.typeUri
-          ? `${TYPE_BASE_URL}/${this.typeUri}`
-          : BLANK_TYPE,
+        BLANK_TYPE === this.typeUri
+          ? BLANK_TYPE
+          : `${TYPE_BASE_URL}/${this.typeUri}`,
       title: this.title,
       status: this.status,
       ...(undefined !== this.detail && { detail: this.detail }),

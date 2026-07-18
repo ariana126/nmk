@@ -18,7 +18,8 @@ make help                # list all available make targets
 Common scripts via `make npm <script>`:
 ```bash
 make npm start:dev           # (already running via `make up`) hot reload on port 3000
-make npm lint                # ESLint + auto-fix
+make npm lint                # ESLint check (read-only, no changes)
+make npm lint:fix            # ESLint + auto-fix
 make npm test                # Jest unit tests (src/**/*.spec.ts)
 make npm test:cov            # Jest with coverage
 make npm db:migrate          # apply Prisma migrations (manual step after `make up`)

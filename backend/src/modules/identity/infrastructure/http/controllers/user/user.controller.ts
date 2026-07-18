@@ -1,3 +1,16 @@
+import { Email } from '@framework/domain';
+import {
+  AuthenticatedUser,
+  CurrentUser,
+  domainErrorSchema,
+  EntityNotFoundSchema,
+  JwtAuthGuard,
+  JwtUnauthorizedSchema,
+  ValidationErrorSchema,
+} from '@framework/infrastructure';
+import { RegisterUserCommand } from '@identity/application/commands/register-user/register-user.command';
+import { GetUserByIdQuery } from '@identity/application/queries/get-user-by-id/get-user-by-id.query';
+import { UserReadModel } from '@identity/application/queries/get-user-by-id/user.read-model';
 import {
   Body,
   Controller,
@@ -19,20 +32,8 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { RegisterUserCommand } from '@identity/application/commands/register-user/register-user.command';
-import { GetUserByIdQuery } from '@identity/application/queries/get-user-by-id/get-user-by-id.query';
-import { UserReadModel } from '@identity/application/queries/get-user-by-id/user.read-model';
+
 import { RegisterUserDto } from './dto/register-user.dto';
-import { Email } from '@framework/domain';
-import {
-  JwtAuthGuard,
-  CurrentUser,
-  AuthenticatedUser,
-  ValidationErrorSchema,
-  EntityNotFoundSchema,
-  JwtUnauthorizedSchema,
-  domainErrorSchema,
-} from '@framework/infrastructure';
 
 @ApiTags('Users')
 @Controller('users')

@@ -1,6 +1,6 @@
-import { User as PrismaUser } from '@prisma/client';
-import { User } from '@identity/domain/user.aggregate';
 import { Email, Identity } from '@framework/domain';
+import { User } from '@identity/domain/user.aggregate';
+import { User as PrismaUser } from '@prisma/client';
 
 export class UserMapper {
   public static toDomain(prismaUser: PrismaUser): User {

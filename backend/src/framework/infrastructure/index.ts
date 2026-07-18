@@ -1,19 +1,19 @@
 export { AuthModule } from './http/auth.module';
-export { HealthModule } from './http/health/health.module';
-export { TestingModule } from './http/testing/testing.module';
-export { PrismaModule } from './persistence/prisma.module';
-export { PrismaService } from './persistence/prisma.service';
-export { PrismaEntityRepository } from './persistence/prisma.repository';
-export type { ExceptionMapper } from './http/exception-mapper.interface';
-export { ProblemDetail } from './http/problem-detail';
-export { FrameworkExceptionMapper } from './http/exception.mapper';
-export { HttpExceptionFilter } from './http/exception.filter';
-export { JwtAuthGuard } from './http/jwt-auth.guard';
 export { AuthenticatedUser } from './http/decorators/authenticated-user';
 export { CurrentUser } from './http/decorators/current-user.decorator';
+export { HttpExceptionFilter } from './http/exception.filter';
+export { FrameworkExceptionMapper } from './http/exception.mapper';
+export type { ExceptionMapper } from './http/exception-mapper.interface';
+export { HealthModule } from './http/health/health.module';
+export { JwtAuthGuard } from './http/jwt-auth.guard';
+export { ProblemDetail } from './http/problem-detail';
 export {
-  ValidationErrorSchema,
+  domainErrorSchema,
   EntityNotFoundSchema,
   JwtUnauthorizedSchema,
-  domainErrorSchema,
+  ValidationErrorSchema,
 } from './http/swagger/error-schemas';
+export { TestingModule } from './http/testing/testing.module';
+export { PrismaModule } from './persistence/prisma.module';
+export { PrismaEntityRepository } from './persistence/prisma.repository';
+export { PrismaService } from './persistence/prisma.service';

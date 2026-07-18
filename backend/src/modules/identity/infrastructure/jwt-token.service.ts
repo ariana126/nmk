@@ -1,6 +1,6 @@
+import { TokenService } from '@identity/domain/service/token.service';
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { TokenService } from '@identity/domain/service/token.service';
 
 @Injectable()
 export class JwtTokenService extends TokenService {

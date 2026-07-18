@@ -1,4 +1,5 @@
 import { AggregateRoot, Email, Identity } from '@framework/domain';
+
 import { UserRegistered } from './events/user-registered.event';
 
 export class User extends AggregateRoot {

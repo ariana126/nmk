@@ -3,8 +3,8 @@ import {
   InvalidCredentials,
   UserAlreadyExists,
 } from '@identity/application/exceptions';
-import { RuntimeException } from '@nestjs/core/errors/exceptions';
 import { HttpStatus } from '@nestjs/common';
+import { RuntimeException } from '@nestjs/core/errors/exceptions';
 
 export class IdentityExceptionMapper implements ExceptionMapper {
   canMap(exception: unknown): boolean {
@@ -16,7 +16,7 @@ export class IdentityExceptionMapper implements ExceptionMapper {
 
   toProblemDetail(exception: unknown): ProblemDetail {
     switch (true) {
-      case exception instanceof UserAlreadyExists:
+      case exception instanceof UserAlreadyExists: {
         return new ProblemDetail(
           'user-already-exists',
           'User Already Exists',
@@ -27,19 +27,22 @@ export class IdentityExceptionMapper implements ExceptionMapper {
             email: exception.email.asString(),
           },
         );
+      }
 
-      case exception instanceof InvalidCredentials:
+      case exception instanceof InvalidCredentials: {
         return new ProblemDetail(
           'invalid-credentials',
           'Invalid Credentials',
           HttpStatus.UNAUTHORIZED,
           exception.message,
         );
+      }
 
-      default:
+      default: {
         throw new RuntimeException(
           `Unexpected exception type: ${String(exception)}`,
         );
+      }
     }
   }
 }

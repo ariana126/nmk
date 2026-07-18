@@ -1,6 +1,3 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { LoggerModule } from 'nestjs-pino';
 import {
   AuthModule,
   HealthModule,
@@ -8,6 +5,9 @@ import {
   TestingModule,
 } from '@framework/infrastructure';
 import { IdentityModule } from '@identity/infrastructure/identity.module';
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { LoggerModule } from 'nestjs-pino';
 
 @Module({
   imports: [
@@ -20,9 +20,9 @@ import { IdentityModule } from '@identity/infrastructure/identity.module';
             config.get('LOG_LEVEL') ??
             (config.get('NODE_ENV') === 'production' ? 'info' : 'debug'),
           transport:
-            config.get('NODE_ENV') !== 'production'
-              ? { target: 'pino-pretty', options: { singleLine: true } }
-              : undefined,
+            config.get('NODE_ENV') === 'production'
+              ? undefined
+              : { target: 'pino-pretty', options: { singleLine: true } },
           redact: {
             paths: [
               'req.headers.authorization',

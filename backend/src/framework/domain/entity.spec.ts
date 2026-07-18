@@ -1,5 +1,5 @@
-import { Identity } from './value/identity.vo';
 import { Entity } from './entity';
+import { Identity } from './value/identity.vo';
 
 class TestEntity extends Entity {}
 

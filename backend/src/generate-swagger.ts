@@ -1,8 +1,10 @@
+import * as fs from 'node:fs';
+import path from 'node:path';
+
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule } from '@nestjs/swagger';
-import * as fs from 'fs';
 import * as yaml from 'js-yaml';
-import * as path from 'path';
+
 import { AppModule } from './app.module';
 import { buildSwaggerConfig, configureApp } from './configure-app';
 

@@ -1,4 +1,5 @@
-import { AggregateRoot, Identity } from '@framework/domain';
+import { AggregateRoot } from '../aggregate-root';
+import { Identity } from '../value/identity.vo';
 
 export abstract class EntityRepository<T extends AggregateRoot> {
   public abstract find(id: Identity): Promise<T | null>;

@@ -1,4 +1,5 @@
-import { DomainException, Identity } from '@framework/domain';
+import { Identity } from '../value/identity.vo';
+import { DomainException } from './domain.exception';
 
 export class EntityNotFound extends DomainException {
   private constructor(

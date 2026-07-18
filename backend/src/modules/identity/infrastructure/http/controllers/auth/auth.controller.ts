@@ -1,3 +1,10 @@
+import { Email } from '@framework/domain';
+import {
+  domainErrorSchema,
+  ValidationErrorSchema,
+} from '@framework/infrastructure';
+import { LoginCommand } from '@identity/application/commands/login/login.command';
+import { LoginUserDto } from '@identity/infrastructure/http/controllers/auth/dto/login-user.dto';
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import {
@@ -7,13 +14,6 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { LoginCommand } from '@identity/application/commands/login/login.command';
-import { LoginUserDto } from '@identity/infrastructure/http/controllers/auth/dto/login-user.dto';
-import { Email } from '@framework/domain';
-import {
-  domainErrorSchema,
-  ValidationErrorSchema,
-} from '@framework/infrastructure';
 
 @ApiTags('Auth')
 @Controller('auth')

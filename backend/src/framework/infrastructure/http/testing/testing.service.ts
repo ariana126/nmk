@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+
+import { Injectable } from '@nestjs/common';
+
 import { PrismaService } from '../../persistence/prisma.service';
 
 const execFileAsync = promisify(execFile);

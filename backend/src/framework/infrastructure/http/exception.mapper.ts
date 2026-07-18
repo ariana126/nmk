@@ -1,8 +1,9 @@
-import { ExceptionMapper } from '@framework/infrastructure';
-import { ProblemDetail } from '@framework/infrastructure';
 import { EntityNotFound } from '@framework/domain';
 import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import { RuntimeException } from '@nestjs/core/errors/exceptions';
+
+import { ExceptionMapper } from './exception-mapper.interface';
+import { ProblemDetail } from './problem-detail';
 
 export class FrameworkExceptionMapper implements ExceptionMapper {
   canMap(exception: unknown): boolean {
@@ -29,10 +30,11 @@ export class FrameworkExceptionMapper implements ExceptionMapper {
         );
       }
 
-      case exception instanceof HttpException:
+      case exception instanceof HttpException: {
         return ProblemDetail.fromHttpException(exception);
+      }
 
-      case exception instanceof EntityNotFound:
+      case exception instanceof EntityNotFound: {
         return new ProblemDetail(
           'entity-not-found',
           'Entity not found',
@@ -43,11 +45,13 @@ export class FrameworkExceptionMapper implements ExceptionMapper {
             entityId: exception.identifier,
           },
         );
+      }
 
-      default:
+      default: {
         throw new RuntimeException(
           `Unexpected exception type: ${String(exception)}`,
         );
+      }
     }
   }
 }
