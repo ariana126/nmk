@@ -22,6 +22,7 @@ make migrate                # apply Prisma migrations (manual step, not part of 
 make run-unit-tests         # backend Jest unit tests (no running stack needed)
 make run-acceptance-tests   # start the test environment, then run the acceptance suite
 make run-guardrails         # run every check CI enforces, cheapest first
+make fix-violations         # apply every fix those checks would demand
 make ps                     # container status across all projects, in one table
 make down                   # stop everything
 make reset                  # stop everything and wipe the database volume
@@ -38,7 +39,12 @@ make fix-format          # Prettier auto-format across every project
 make lint-architecture   # check the backend's DDD + CQRS layer boundaries
 make lint-swagger        # check the backend's committed OpenAPI spec matches the code
 make generate-swagger    # regenerate the backend's OpenAPI spec
+make fix-violations      # all three writing targets, in one go
 ```
+
+`make fix-violations` runs `fix-lint`, then `fix-format`, then `generate-swagger`. Order matters:
+ESLint runs Prettier as a rule and covers a superset of its files, so `fix-lint` converges on its
+own and `fix-format` is a cheap re-check; the spec is regenerated last, from already-fixed source.
 
 Every one of these runs in a throwaway container and needs nothing up, not even the database — the swagger pair boots the app but never queries it. They stop at the first project that fails. `lint-architecture` and `lint-swagger` are backend-only — no other project has layer boundaries to enforce or an OpenAPI spec to keep in sync.
 
@@ -67,6 +73,10 @@ first failure. It is a convenience, not a gate: CI keeps its six parallel jobs, 
 sooner and name the broken check without reading a log. Because it ends in
 `run-acceptance-tests`, it leaves the backend test stack and the acceptance-tests container
 running; `make down` afterwards.
+
+`make fix-violations` is its writing counterpart — one command that applies every automated fix
+the checks would otherwise demand, so nothing avoidable reaches CI. No job calls it and none
+should: CI only ever runs the read-only checks.
 
 The acceptance-tests job also renders the living documentation
 (`make render-living-documentation`) and uploads `acceptance-tests/target/site/serenity` as the

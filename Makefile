@@ -5,7 +5,7 @@ MAKEFLAGS += --no-print-directory
 # Add `frontend` here once it has a Makefile speaking the same vocabulary.
 PROJECTS := backend acceptance-tests
 
-.PHONY: help setup up down restart build ps logs lint fix-lint format fix-format lint-architecture lint-swagger generate-swagger run-unit-tests run-acceptance-tests run-guardrails render-living-documentation migrate reset FORCE
+.PHONY: help setup up down restart build ps logs lint fix-lint format fix-format lint-architecture lint-swagger generate-swagger run-unit-tests run-acceptance-tests run-guardrails fix-violations render-living-documentation migrate reset FORCE
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-28s\033[0m %s\n", $$1, $$2}'
@@ -75,6 +75,14 @@ run-guardrails: ## Run every check CI enforces, cheapest first
 	@$(MAKE) lint-swagger
 	@$(MAKE) run-unit-tests
 	@$(MAKE) run-acceptance-tests
+
+# Recipe lines, not prerequisites, for the same reason as run-guardrails: order matters and
+# prerequisites may run in parallel under -j. ESLint embeds Prettier, so fix-lint converges on
+# its own and fix-format is a no-op re-check; the spec is generated last, from fixed source.
+fix-violations: ## Apply every fix the guardrails would otherwise demand
+	@$(MAKE) fix-lint
+	@$(MAKE) fix-format
+	@$(MAKE) generate-swagger
 
 render-living-documentation: ## Render the living documentation from the last acceptance run
 	@$(MAKE) -C acceptance-tests render-living-documentation
