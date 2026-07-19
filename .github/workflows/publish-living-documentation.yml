@@ -23,7 +23,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Same two-step shape as ci.yml's acceptance-tests job: run the suite, then
       # aggregate what it recorded into the browsable HTML site. render is best-effort

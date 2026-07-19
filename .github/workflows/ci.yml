@@ -19,42 +19,42 @@ jobs:
     name: Check format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: make format
 
   lint:
     name: Check lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: make lint
 
   lint-architecture:
     name: Check architecture
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: make lint-architecture
 
   lint-swagger:
     name: Check swagger
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: make lint-swagger
 
   unit-tests:
     name: Run unit tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: make run-unit-tests
 
   acceptance-tests:
     name: Run acceptance tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: make run-acceptance-tests
       # A failing suite still publishes what it managed to record, so the failure can
       # be read as living documentation rather than scraped out of the job log.
