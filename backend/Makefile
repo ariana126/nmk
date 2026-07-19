@@ -50,11 +50,13 @@ fix-format: setup ## Prettier auto-format
 lint-architecture: setup ## Check the DDD + CQRS layer boundaries (dependency-cruiser)
 	docker compose run --rm --no-deps app npm run depcruise
 
-lint-swagger: ## Check the committed OpenAPI spec matches the code (read-only, no changes)
-	docker compose exec app npm run swagger:check
+# Both boot the app but issue no query; the Prisma driver adapter connects
+# lazily, so --no-deps needs no database.
+lint-swagger: setup ## Check the committed OpenAPI spec matches the code (read-only, no changes)
+	docker compose run --rm --no-deps app npm run swagger:check
 
-generate-swagger: ## Regenerate docs/openapi.json and docs/openapi.yaml from the code
-	docker compose exec app npm run swagger:generate
+generate-swagger: setup ## Regenerate docs/openapi.json and docs/openapi.yaml from the code
+	docker compose run --rm --no-deps app npm run swagger:generate
 
 run-unit-tests: setup ## Run the Jest unit tests in a one-off container (no database needed)
 	docker compose run --rm --no-deps app npm test

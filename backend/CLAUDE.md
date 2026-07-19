@@ -34,11 +34,13 @@ make generate-swagger    # rewrite docs/openapi.json and docs/openapi.yaml
 
 `docs/openapi.json` and `docs/openapi.yaml` are committed, so they drift the moment a controller,
 DTO, or `@Api*` decorator changes without a regeneration. `make lint-swagger` rebuilds the document
-in memory and compares it to what is on disk; `make generate-swagger` is the fix. Both boot the app,
-so the stack must be up — they are the only quality checks that need it. `lint`, `fix-lint`,
-`format`, `fix-format` and `lint-architecture` are static analysis over `src/`: they run in a
-throwaway container with no database, and the `fix-` ones still write to the working tree, since
-the repo is bind-mounted into the container.
+in memory and compares it to what is on disk; `make generate-swagger` is the fix. Both boot the app
+but never query the database — the Prisma driver adapter connects lazily — so like every other
+quality check they run in a throwaway container and need nothing up.
+
+None of the checks above require a running stack. The ones that write (`fix-lint`, `fix-format`,
+`generate-swagger`) still land their changes in the working tree, since the repo is bind-mounted
+into the container.
 
 Make targets are verb-object and hyphenated (`fix-format`, `lint-architecture`); the
 package.json scripts they wrap keep their own names (`format:fix`, `depcruise`). Prefer the
