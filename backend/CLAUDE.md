@@ -18,7 +18,8 @@ make help                # list all available make targets
 
 `make run-unit-tests` needs nothing running: it uses `docker compose run --rm --no-deps`, so the
 tests get a throwaway container with no database behind it and no published ports, which is why
-it is safe to run while `make up`'s stack owns 3000.
+it is safe to run while `make up`'s stack owns 3000. The lint and format targets below work the
+same way, for the same reason.
 
 Code-quality checks. The bare targets are read-only; the `fix-` ones write:
 ```bash
@@ -34,7 +35,10 @@ make generate-swagger    # rewrite docs/openapi.json and docs/openapi.yaml
 `docs/openapi.json` and `docs/openapi.yaml` are committed, so they drift the moment a controller,
 DTO, or `@Api*` decorator changes without a regeneration. `make lint-swagger` rebuilds the document
 in memory and compares it to what is on disk; `make generate-swagger` is the fix. Both boot the app,
-so the stack must be up.
+so the stack must be up — they are the only quality checks that need it. `lint`, `fix-lint`,
+`format`, `fix-format` and `lint-architecture` are static analysis over `src/`: they run in a
+throwaway container with no database, and the `fix-` ones still write to the working tree, since
+the repo is bind-mounted into the container.
 
 Make targets are verb-object and hyphenated (`fix-format`, `lint-architecture`); the
 package.json scripts they wrap keep their own names (`format:fix`, `depcruise`). Prefer the

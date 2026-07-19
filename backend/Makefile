@@ -35,20 +35,20 @@ sh: ## Open a shell in the app container
 npm: ## Run any package.json script in the container. Usage: make npm test
 	docker compose exec app npm run $(filter-out $@,$(MAKECMDGOALS))
 
-lint: ## ESLint check (read-only, no changes)
-	docker compose exec app npm run lint
+lint: setup ## ESLint check (read-only, no changes)
+	docker compose run --rm --no-deps app npm run lint
 
-fix-lint: ## ESLint + auto-fix
-	docker compose exec app npm run lint:fix
+fix-lint: setup ## ESLint + auto-fix
+	docker compose run --rm --no-deps app npm run lint:fix
 
-format: ## Prettier check (read-only, no changes)
-	docker compose exec app npm run format
+format: setup ## Prettier check (read-only, no changes)
+	docker compose run --rm --no-deps app npm run format
 
-fix-format: ## Prettier auto-format
-	docker compose exec app npm run format:fix
+fix-format: setup ## Prettier auto-format
+	docker compose run --rm --no-deps app npm run format:fix
 
-lint-architecture: ## Check the DDD + CQRS layer boundaries (dependency-cruiser)
-	docker compose exec app npm run depcruise
+lint-architecture: setup ## Check the DDD + CQRS layer boundaries (dependency-cruiser)
+	docker compose run --rm --no-deps app npm run depcruise
 
 lint-swagger: ## Check the committed OpenAPI spec matches the code (read-only, no changes)
 	docker compose exec app npm run swagger:check

@@ -31,6 +31,9 @@ make format              # Prettier check (read-only, no changes)
 make fix-format          # Prettier auto-format
 ```
 
+These need nothing running — each starts a throwaway container (`docker compose run --rm`). The
+`fix-` ones still write to the working tree, since the repo is bind-mounted into the container.
+
 Make targets are verb-object and hyphenated (`fix-format`); the package.json scripts they
 wrap keep the colon (`format:fix`). Prefer the targets over `make npm <script>` — because
 `lint` and `format` are now real targets, `make npm lint` runs the linter twice (once

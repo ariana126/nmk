@@ -39,7 +39,7 @@ make lint-swagger        # check the backend's committed OpenAPI spec matches th
 make generate-swagger    # regenerate the backend's OpenAPI spec
 ```
 
-These run inside the containers, so the stacks must already be up. They stop at the first project that fails. `lint-architecture` and `lint-swagger` are backend-only — no other project has layer boundaries to enforce or an OpenAPI spec to keep in sync.
+All but the swagger pair are static analysis over source: they run in a throwaway container and need nothing up, not even the database. `lint-swagger` and `generate-swagger` boot the app, so the backend stack must be running for those two. They stop at the first project that fails. `lint-architecture` and `lint-swagger` are backend-only — no other project has layer boundaries to enforce or an OpenAPI spec to keep in sync.
 
 Reach a single project's Makefile with `<project>/<target>`: `make backend/sh`, `make backend/logs`, `make acceptance-tests/report`.
 

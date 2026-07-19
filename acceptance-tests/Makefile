@@ -37,17 +37,17 @@ report: ## Render the Serenity BDD report from the last run into target/site/ser
 npm: ## Run any package.json script in the container. Usage: make npm test
 	docker compose exec app npm run $(filter-out $@,$(MAKECMDGOALS))
 
-lint: ## ESLint check (read-only, no changes)
-	docker compose exec app npm run lint
+lint: setup ## ESLint check (read-only, no changes)
+	docker compose run --rm app npm run lint
 
-fix-lint: ## ESLint + auto-fix
-	docker compose exec app npm run lint:fix
+fix-lint: setup ## ESLint + auto-fix
+	docker compose run --rm app npm run lint:fix
 
-format: ## Prettier check (read-only, no changes)
-	docker compose exec app npm run format
+format: setup ## Prettier check (read-only, no changes)
+	docker compose run --rm app npm run format
 
-fix-format: ## Prettier auto-format
-	docker compose exec app npm run format:fix
+fix-format: setup ## Prettier auto-format
+	docker compose run --rm app npm run format:fix
 
 %:
 	@:
