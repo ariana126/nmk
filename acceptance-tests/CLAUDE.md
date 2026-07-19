@@ -17,7 +17,7 @@ make up                  # build (if needed) and start this container in the bac
 make down                # stop and remove the container
 make sh                  # open a shell in the container
 make run                 # run the full acceptance suite
-make report              # render the Serenity BDD report from the last run
+make render-living-documentation   # render the living documentation from the last run
 make npm <script>        # run any package.json script inside the container
 make help                # list all available make targets
 ```
@@ -103,14 +103,16 @@ Both testing endpoints are exposed by the backend only when `NODE_ENV !== 'produ
 
 **Assert the API as it is built, not as you wish it were.** The backend reports weak password, invalid email and missing data as the *same* `400` problem type (`validation-error`), distinguished only by which field appears in the `errors[]` array — hence `EnsureValidationErrorFor(field)`. Do not assert problem types the backend does not emit; that turns a green suite into a parked `@wip` one. Only duplicate email has a dedicated type (`409 user-already-exists`).
 
-### Reporting
+### Living documentation
 
 Two phases:
 
 1. `make run` — the `@serenity-js/serenity-bdd` crew member writes one raw JSON file per scenario into `target/site/serenity/`.
-2. `make report` — shells out to the Serenity BDD **Java** CLI to aggregate those into a browsable HTML site at `target/site/serenity/index.html`. This is why the Dockerfile installs `default-jre-headless`. It renders whatever the last run produced; it does not run any tests.
+2. `make render-living-documentation` — shells out to the Serenity BDD **Java** CLI to aggregate those into a browsable HTML site at `target/site/serenity/index.html`. This is why the Dockerfile installs `default-jre-headless`. It renders whatever the last run produced; it does not run any tests.
 
-`target/` is bind-mounted, so the report opens straight from the host. Artifacts **accumulate** across runs — if the counts look wrong, `rm -rf target/` and re-run.
+`target/` is bind-mounted, so the living documentation opens straight from the host. Artifacts **accumulate** across runs — if the counts look wrong, `rm -rf target/` and re-run.
+
+The target is named for what it produces, not for the tool that produces it — the npm script it wraps keeps its own name (`npm run report`), the same way `lint-architecture` wraps `npm run depcruise` in the backend.
 
 ## Gotchas
 

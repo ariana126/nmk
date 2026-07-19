@@ -68,7 +68,7 @@ reset: ## Stop the dev + test stacks and wipe their database volumes
 test-setup: ## Create .env.test from .env.test.example if it doesn't exist yet
 	@[ -f .env.test ] || cp .env.test.example .env.test
 
-test-up: test-setup ## Build (if needed) and start the test stack (NODE_ENV=test), waiting until healthy
+test-up: setup test-setup ## Build (if needed) and start the test stack (NODE_ENV=test), waiting until healthy
 	$(COMPOSE_TEST) up --build -d --wait
 
 test-down: ## Stop and remove the test stack containers

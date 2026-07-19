@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  pull_request:
+
+# A new push to the same pull request cancels the run it supersedes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Every job is a checkout plus one root Make target. The Makefile stays the single
+# source of truth: each target already runs in a throwaway container and creates its
+# own .env from the committed .env.example, so no setup actions and no secrets.
+jobs:
+  format:
+    name: Check format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make format
+
+  lint:
+    name: Check lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make lint
+
+  lint-architecture:
+    name: Check architecture
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make lint-architecture
+
+  lint-swagger:
+    name: Check swagger
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make lint-swagger
+
+  unit-tests:
+    name: Run unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make run-unit-tests
+
+  acceptance-tests:
+    name: Run acceptance tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make run-acceptance-tests
+      # A failing suite still publishes what it managed to record, so the failure can
+      # be read as living documentation rather than scraped out of the job log.
+      # continue-on-error: if the suite never got far enough to start its container,
+      # rendering can't work either — don't bury the real failure under this one.
+      - name: Render living documentation
+        if: always()
+        continue-on-error: true
+        run: make render-living-documentation
+      - name: Upload living documentation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: living-documentation
+          path: acceptance-tests/target/site/serenity
+          if-no-files-found: warn

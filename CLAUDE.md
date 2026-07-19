@@ -41,11 +41,27 @@ make generate-swagger    # regenerate the backend's OpenAPI spec
 
 Every one of these runs in a throwaway container and needs nothing up, not even the database — the swagger pair boots the app but never queries it. They stop at the first project that fails. `lint-architecture` and `lint-swagger` are backend-only — no other project has layer boundaries to enforce or an OpenAPI spec to keep in sync.
 
-Reach a single project's Makefile with `<project>/<target>`: `make backend/sh`, `make backend/logs`, `make acceptance-tests/report`.
+Reach a single project's Makefile with `<project>/<target>`: `make backend/sh`, `make backend/logs`, `make acceptance-tests/render-living-documentation`.
 
 Use the slash form, not `make backend up` — Make would read `up` as a second root goal and start every stack a second time. For the same reason, targets taking an argument (`make npm <script>`) have no passthrough; run them from the subproject, or use the dedicated root target where one exists (`make migrate`).
 
 `make up` does **not** migrate. The acceptance suite applies migrations itself (`POST /api/testing/migrations` in its `BeforeAll` hook), so `make run-acceptance-tests` is unaffected; run `make migrate` when driving the app by hand.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` gates every pull request. Six jobs run in parallel, one per check:
+`make format`, `make lint`, `make lint-architecture`, `make lint-swagger`, `make run-unit-tests`,
+`make run-acceptance-tests`. Each job is a checkout plus a single root target — no npm, no Node
+setup, no secrets, because every target already builds its own container and creates its `.env`
+from the committed `.env.example`.
+
+**A new gate means a new root target plus a job that calls it.** Never inline a command into the
+workflow: the Makefile stays the single source of truth, so what CI enforces is exactly what runs
+locally. Each job cold-builds its image, since a fresh runner has no Docker layer cache.
+
+The acceptance-tests job also renders the living documentation
+(`make render-living-documentation`) and uploads `acceptance-tests/target/site/serenity` as the
+`living-documentation` artifact — on every run, pass or fail.
 
 ## The dependency runs one way
 
