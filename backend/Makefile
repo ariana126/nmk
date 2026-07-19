@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down restart build logs ps sh npm lint fix-lint format fix-format lint-architecture reset test-setup test-up test-down test-reset
+.PHONY: help setup up down restart build logs ps sh npm lint fix-lint format fix-format lint-architecture run-unit-tests reset test-setup test-up test-down test-reset
 
 COMPOSE_TEST := docker compose --env-file .env.test -f docker-compose.yml -f docker-compose.test.yml
 
@@ -49,6 +49,9 @@ fix-format: ## Prettier auto-format
 
 lint-architecture: ## Check the DDD + CQRS layer boundaries (dependency-cruiser)
 	docker compose exec app npm run depcruise
+
+run-unit-tests: setup ## Run the Jest unit tests in a one-off container (no database needed)
+	docker compose run --rm --no-deps app npm test
 
 reset: ## Stop the dev + test stacks and wipe their database volumes
 	docker compose down -v

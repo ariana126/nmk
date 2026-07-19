@@ -5,10 +5,10 @@ MAKEFLAGS += --no-print-directory
 # Add `frontend` here once it has a Makefile speaking the same vocabulary.
 PROJECTS := backend acceptance-tests
 
-.PHONY: help setup up down restart build ps logs lint fix-lint format fix-format lint-architecture test report migrate reset FORCE
+.PHONY: help setup up down restart build ps logs lint fix-lint format fix-format lint-architecture run-unit-tests run-acceptance-tests report migrate reset FORCE
 
 help: ## Show available commands
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo "  Run a single project's target with <project>/<target>, e.g. make backend/sh"
 	@echo "  Projects: $(PROJECTS)"
@@ -51,7 +51,12 @@ lint-architecture: ## Check the backend's DDD + CQRS layer boundaries
 migrate: ## Apply Prisma migrations against the running backend
 	@$(MAKE) -C backend npm db:migrate
 
-test: ## Run the BDD acceptance suite (requires the stack to be running)
+run-unit-tests: ## Run the backend's Jest unit tests (no running stack needed)
+	@$(MAKE) -C backend run-unit-tests
+
+run-acceptance-tests: ## Start the test environment if needed, then run the BDD acceptance suite
+	@$(MAKE) -C backend test-up
+	@$(MAKE) -C acceptance-tests up
 	@$(MAKE) -C acceptance-tests run
 
 report: ## Render the Serenity BDD report from the last run

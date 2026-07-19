@@ -17,13 +17,14 @@ A monorepo of independent projects, each with its own Makefile, Docker Compose s
 The root Makefile orchestrates the subprojects by delegating to their Makefiles. It holds no logic of its own — behaviour lives in each subproject.
 
 ```bash
-make up        # cold start every project (backend first, waits until healthy)
-make migrate   # apply Prisma migrations (manual step, not part of `make up`)
-make test      # run the acceptance suite (requires the stack to be running)
-make ps        # container status across all projects, in one table
-make down      # stop everything
-make reset     # stop everything and wipe the database volume
-make help      # list all targets
+make up                     # cold start every project (backend first, waits until healthy)
+make migrate                # apply Prisma migrations (manual step, not part of `make up`)
+make run-unit-tests         # backend Jest unit tests (no running stack needed)
+make run-acceptance-tests   # start the test environment, then run the acceptance suite
+make ps                     # container status across all projects, in one table
+make down                   # stop everything
+make reset                  # stop everything and wipe the database volume
+make help                   # list all targets
 ```
 
 Code-quality checks, fanned out over every project. The bare targets are read-only; the `fix-` ones write:
@@ -42,7 +43,7 @@ Reach a single project's Makefile with `<project>/<target>`: `make backend/sh`, 
 
 Use the slash form, not `make backend up` — Make would read `up` as a second root goal and start every stack a second time. For the same reason, targets taking an argument (`make npm <script>`) have no passthrough; run them from the subproject, or use the dedicated root target where one exists (`make migrate`).
 
-`make up` does **not** migrate. The acceptance suite applies migrations itself (`POST /api/testing/migrations` in its `BeforeAll` hook), so `make test` is unaffected; run `make migrate` when driving the app by hand.
+`make up` does **not** migrate. The acceptance suite applies migrations itself (`POST /api/testing/migrations` in its `BeforeAll` hook), so `make run-acceptance-tests` is unaffected; run `make migrate` when driving the app by hand.
 
 ## The dependency runs one way
 

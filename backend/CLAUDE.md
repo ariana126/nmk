@@ -12,8 +12,13 @@ make down                # stop and remove containers
 make logs                # tail logs from all containers
 make sh                  # open a shell in the app container
 make npm <script>        # run any package.json script inside the container
+make run-unit-tests      # Jest unit tests (src/**/*.spec.ts), in a one-off container
 make help                # list all available make targets
 ```
+
+`make run-unit-tests` needs nothing running: it uses `docker compose run --rm --no-deps`, so the
+tests get a throwaway container with no database behind it and no published ports, which is why
+it is safe to run while `make up`'s stack owns 3000.
 
 Code-quality checks. The bare targets are read-only; the `fix-` ones write:
 ```bash
@@ -32,7 +37,6 @@ targets over `make npm <script>` — because `lint` and `format` are now real ta
 Other scripts, via `make npm <script>`:
 ```bash
 make npm start:dev           # (already running via `make up`) hot reload on port 3000
-make npm test                # Jest unit tests (src/**/*.spec.ts)
 make npm test:cov            # Jest with coverage
 make npm db:migrate          # apply Prisma migrations (manual step after `make up`)
 make npm db:generate-client  # regenerate Prisma client
