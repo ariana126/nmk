@@ -21,6 +21,7 @@ make up                     # cold start every project (backend first, waits unt
 make migrate                # apply Prisma migrations (manual step, not part of `make up`)
 make run-unit-tests         # backend Jest unit tests (no running stack needed)
 make run-acceptance-tests   # start the test environment, then run the acceptance suite
+make run-guardrails         # run every check CI enforces, cheapest first
 make ps                     # container status across all projects, in one table
 make down                   # stop everything
 make reset                  # stop everything and wipe the database volume
@@ -55,9 +56,17 @@ Use the slash form, not `make backend up` — Make would read `up` as a second r
 setup, no secrets, because every target already builds its own container and creates its `.env`
 from the committed `.env.example`.
 
-**A new gate means a new root target plus a job that calls it.** Never inline a command into the
-workflow: the Makefile stays the single source of truth, so what CI enforces is exactly what runs
-locally. Each job cold-builds its image, since a fresh runner has no Docker layer cache.
+**A new gate means a new root target, a job that calls it, and a line in `run-guardrails`.**
+Never inline a command into the workflow: the Makefile stays the single source of truth, so what
+CI enforces is exactly what runs locally. Each job cold-builds its image, since a fresh runner
+has no Docker layer cache.
+
+`make run-guardrails` is the local mirror of these six jobs — the one command that answers "will
+CI pass?". It runs them sequentially rather than in parallel, cheapest first, so it stops at the
+first failure. It is a convenience, not a gate: CI keeps its six parallel jobs, which finish
+sooner and name the broken check without reading a log. Because it ends in
+`run-acceptance-tests`, it leaves the backend test stack and the acceptance-tests container
+running; `make down` afterwards.
 
 The acceptance-tests job also renders the living documentation
 (`make render-living-documentation`) and uploads `acceptance-tests/target/site/serenity` as the

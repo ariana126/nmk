@@ -5,7 +5,7 @@ MAKEFLAGS += --no-print-directory
 # Add `frontend` here once it has a Makefile speaking the same vocabulary.
 PROJECTS := backend acceptance-tests
 
-.PHONY: help setup up down restart build ps logs lint fix-lint format fix-format lint-architecture lint-swagger generate-swagger run-unit-tests run-acceptance-tests render-living-documentation migrate reset FORCE
+.PHONY: help setup up down restart build ps logs lint fix-lint format fix-format lint-architecture lint-swagger generate-swagger run-unit-tests run-acceptance-tests run-guardrails render-living-documentation migrate reset FORCE
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-28s\033[0m %s\n", $$1, $$2}'
@@ -64,6 +64,17 @@ run-acceptance-tests: ## Start the test environment if needed, then run the BDD 
 	@$(MAKE) -C backend test-up
 	@$(MAKE) -C acceptance-tests up
 	@$(MAKE) -C acceptance-tests run
+
+# One recipe line per gate, not prerequisites: prerequisites are free to run in parallel
+# under -j, and the cheapest-first ordering is the whole point. Make already stops at the
+# first failing line, so no `|| exit $$?` is needed.
+run-guardrails: ## Run every check CI enforces, cheapest first
+	@$(MAKE) format
+	@$(MAKE) lint
+	@$(MAKE) lint-architecture
+	@$(MAKE) lint-swagger
+	@$(MAKE) run-unit-tests
+	@$(MAKE) run-acceptance-tests
 
 render-living-documentation: ## Render the living documentation from the last acceptance run
 	@$(MAKE) -C acceptance-tests render-living-documentation
