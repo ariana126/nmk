@@ -5,10 +5,10 @@ MAKEFLAGS += --no-print-directory
 # Add `frontend` here once it has a Makefile speaking the same vocabulary.
 PROJECTS := backend acceptance-tests
 
-.PHONY: help setup up down restart build ps logs test report migrate reset FORCE
+.PHONY: help setup up down restart build ps logs lint fix-lint format fix-format lint-architecture test report migrate reset FORCE
 
 help: ## Show available commands
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo "  Run a single project's target with <project>/<target>, e.g. make backend/sh"
 	@echo "  Projects: $(PROJECTS)"
@@ -32,6 +32,21 @@ ps: ## Show the status of every container, across all projects
 
 logs: ## Tail the backend's logs (the acceptance-tests container idles and logs nothing)
 	@$(MAKE) -C backend logs
+
+lint: ## ESLint check across every project (read-only, no changes)
+	@for p in $(PROJECTS); do $(MAKE) -C $$p lint || exit $$?; done
+
+fix-lint: ## ESLint + auto-fix across every project
+	@for p in $(PROJECTS); do $(MAKE) -C $$p fix-lint || exit $$?; done
+
+format: ## Prettier check across every project (read-only, no changes)
+	@for p in $(PROJECTS); do $(MAKE) -C $$p format || exit $$?; done
+
+fix-format: ## Prettier auto-format across every project
+	@for p in $(PROJECTS); do $(MAKE) -C $$p fix-format || exit $$?; done
+
+lint-architecture: ## Check the backend's DDD + CQRS layer boundaries
+	@$(MAKE) -C backend lint-architecture
 
 migrate: ## Apply Prisma migrations against the running backend
 	@$(MAKE) -C backend npm db:migrate

@@ -22,6 +22,20 @@ make npm <script>        # run any package.json script inside the container
 make help                # list all available make targets
 ```
 
+Code-quality checks. The bare targets are read-only; the `fix-` ones write:
+
+```bash
+make lint                # ESLint check (read-only, no changes)
+make fix-lint            # ESLint + auto-fix
+make format              # Prettier check (read-only, no changes)
+make fix-format          # Prettier auto-format
+```
+
+Make targets are verb-object and hyphenated (`fix-format`); the package.json scripts they
+wrap keep the colon (`format:fix`). Prefer the targets over `make npm <script>` — because
+`lint` and `format` are now real targets, `make npm lint` runs the linter twice (once
+through the passthrough, once as a second goal).
+
 From a shell inside the container (`make sh`):
 
 ```bash
@@ -30,8 +44,6 @@ npx cucumber-js specs/registration/sign-up.feature   # one feature file
 npx cucumber-js specs/registration/sign-up.feature:20  # one scenario, by line number
 npx cucumber-js --tags '@wip'                        # only @wip scenarios
 npx tsc --noEmit                                     # typecheck
-npm run lint                                          # eslint --fix over the TS sources
-npm run format                                        # prettier --write over the TS sources
 ```
 
 **`@wip`** marks scenarios written ahead of the backend. `npm test` excludes them. No scenario carries the tag today — the suite is fully green against the current backend, and it should stay that way (see *Assertion conventions*).

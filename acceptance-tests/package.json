@@ -1,5 +1,5 @@
 {
-  "name": "acceptance-tests",
+  "name": "nmk-acceptance-tests",
   "version": "0.0.1",
   "description": "Black-box BDD acceptance tests, run against a live backend instance.",
   "private": true,
@@ -7,8 +7,10 @@
   "scripts": {
     "test": "node --env-file=.env node_modules/.bin/cucumber-js --tags 'not @wip'",
     "report": "serenity-bdd run --features-directory specs",
-    "lint": "eslint \"{screenplay,step-definitions,support}/**/*.ts\" --fix",
-    "format": "prettier --write \"{screenplay,step-definitions,support}/**/*.ts\""
+    "lint": "eslint \"{screenplay,step-definitions,support}/**/*.ts\"",
+    "lint:fix": "eslint \"{screenplay,step-definitions,support}/**/*.ts\" --fix",
+    "format": "prettier --check \"{screenplay,step-definitions,support}/**/*.ts\"",
+    "format:fix": "prettier --write \"{screenplay,step-definitions,support}/**/*.ts\""
   },
   "devDependencies": {
     "@cucumber/cucumber": "^12.8.3",

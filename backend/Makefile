@@ -1,11 +1,11 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down restart build logs ps sh npm reset test-setup test-up test-down test-reset
+.PHONY: help setup up down restart build logs ps sh npm lint fix-lint format fix-format lint-architecture reset test-setup test-up test-down test-reset
 
 COMPOSE_TEST := docker compose --env-file .env.test -f docker-compose.yml -f docker-compose.test.yml
 
 help: ## Show available commands
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
 setup: ## Create .env from .env.example if it doesn't exist yet
 	@[ -f .env ] || cp .env.example .env
@@ -32,8 +32,23 @@ ps: ## Show status of the dev + test stack containers
 sh: ## Open a shell in the app container
 	docker compose exec app bash
 
-npm: ## Run any package.json script in the container. Usage: make npm lint
+npm: ## Run any package.json script in the container. Usage: make npm test
 	docker compose exec app npm run $(filter-out $@,$(MAKECMDGOALS))
+
+lint: ## ESLint check (read-only, no changes)
+	docker compose exec app npm run lint
+
+fix-lint: ## ESLint + auto-fix
+	docker compose exec app npm run lint:fix
+
+format: ## Prettier check (read-only, no changes)
+	docker compose exec app npm run format
+
+fix-format: ## Prettier auto-format
+	docker compose exec app npm run format:fix
+
+lint-architecture: ## Check the DDD + CQRS layer boundaries (dependency-cruiser)
+	docker compose exec app npm run depcruise
 
 reset: ## Stop the dev + test stacks and wipe their database volumes
 	docker compose down -v

@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down restart build logs ps sh run report npm
+.PHONY: help setup up down restart build logs ps sh run report npm lint fix-lint format fix-format
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -36,6 +36,18 @@ report: ## Render the Serenity BDD report from the last run into target/site/ser
 
 npm: ## Run any package.json script in the container. Usage: make npm test
 	docker compose exec app npm run $(filter-out $@,$(MAKECMDGOALS))
+
+lint: ## ESLint check (read-only, no changes)
+	docker compose exec app npm run lint
+
+fix-lint: ## ESLint + auto-fix
+	docker compose exec app npm run lint:fix
+
+format: ## Prettier check (read-only, no changes)
+	docker compose exec app npm run format
+
+fix-format: ## Prettier auto-format
+	docker compose exec app npm run format:fix
 
 %:
 	@:

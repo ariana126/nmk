@@ -26,6 +26,18 @@ make reset     # stop everything and wipe the database volume
 make help      # list all targets
 ```
 
+Code-quality checks, fanned out over every project. The bare targets are read-only; the `fix-` ones write:
+
+```bash
+make lint                # ESLint check across every project (read-only, no changes)
+make fix-lint            # ESLint + auto-fix across every project
+make format              # Prettier check across every project (read-only, no changes)
+make fix-format          # Prettier auto-format across every project
+make lint-architecture   # check the backend's DDD + CQRS layer boundaries
+```
+
+These run inside the containers, so the stacks must already be up. They stop at the first project that fails. `lint-architecture` is backend-only — no other project has layer boundaries to enforce.
+
 Reach a single project's Makefile with `<project>/<target>`: `make backend/sh`, `make backend/logs`, `make acceptance-tests/report`.
 
 Use the slash form, not `make backend up` — Make would read `up` as a second root goal and start every stack a second time. For the same reason, targets taking an argument (`make npm <script>`) have no passthrough; run them from the subproject, or use the dedicated root target where one exists (`make migrate`).

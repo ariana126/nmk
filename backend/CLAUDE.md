@@ -15,11 +15,23 @@ make npm <script>        # run any package.json script inside the container
 make help                # list all available make targets
 ```
 
-Common scripts via `make npm <script>`:
+Code-quality checks. The bare targets are read-only; the `fix-` ones write:
+```bash
+make lint                # ESLint check (read-only, no changes)
+make fix-lint            # ESLint + auto-fix
+make format              # Prettier check (read-only, no changes)
+make fix-format          # Prettier auto-format
+make lint-architecture   # check the DDD + CQRS layer boundaries
+```
+
+Make targets are verb-object and hyphenated (`fix-format`, `lint-architecture`); the
+package.json scripts they wrap keep their own names (`format:fix`, `depcruise`). Prefer the
+targets over `make npm <script>` — because `lint` and `format` are now real targets,
+`make npm lint` runs the linter twice (once through the passthrough, once as a second goal).
+
+Other scripts, via `make npm <script>`:
 ```bash
 make npm start:dev           # (already running via `make up`) hot reload on port 3000
-make npm lint                # ESLint check (read-only, no changes)
-make npm lint:fix            # ESLint + auto-fix
 make npm test                # Jest unit tests (src/**/*.spec.ts)
 make npm test:cov            # Jest with coverage
 make npm db:migrate          # apply Prisma migrations (manual step after `make up`)
@@ -91,7 +103,7 @@ To add a new domain exception:
 ### Architecture linting
 
 The DDD + CQRS layer boundaries are enforced by **dependency-cruiser** (`.dependency-cruiser.cjs`).
-Run `make npm depcruise`. The rules forbid cycles, keep the `domain` layer pure (no
+Run `make lint-architecture`. The rules forbid cycles, keep the `domain` layer pure (no
 `application`/`infrastructure`, no NestJS/Prisma), stop `application` reaching into
 `infrastructure`, keep `framework` free of feature modules, and keep modules from importing each
 other. One documented exception is whitelisted: `HttpExceptionFilter` composes the module
