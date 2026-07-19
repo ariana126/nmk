@@ -46,16 +46,20 @@ function write(document: OpenAPIObject): void {
   console.log('docs/openapi.json and docs/openapi.yaml written');
 }
 
-function isStale(file: string, expected: string): boolean {
-  return !fs.existsSync(file) || fs.readFileSync(file, 'utf8') !== expected;
-}
-
 function check(document: OpenAPIObject): void {
   const rendered = render(document);
 
+  // Read through the constants directly rather than via a `file: string` parameter: the
+  // path stays statically known, to the reader and to security/detect-non-literal-fs-filename.
+  // A missing file reads as null, which never matches, so it still counts as stale.
+  const onDisk = {
+    json: fs.existsSync(JSON_FILE) ? fs.readFileSync(JSON_FILE, 'utf8') : null,
+    yaml: fs.existsSync(YAML_FILE) ? fs.readFileSync(YAML_FILE, 'utf8') : null,
+  };
+
   const stale = [
-    ...(isStale(JSON_FILE, rendered.json) ? ['docs/openapi.json'] : []),
-    ...(isStale(YAML_FILE, rendered.yaml) ? ['docs/openapi.yaml'] : []),
+    ...(onDisk.json === rendered.json ? [] : ['docs/openapi.json']),
+    ...(onDisk.yaml === rendered.yaml ? [] : ['docs/openapi.yaml']),
   ];
 
   if (stale.length === 0) {

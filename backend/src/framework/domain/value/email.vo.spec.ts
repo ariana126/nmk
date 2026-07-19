@@ -23,6 +23,34 @@ describe('Email', () => {
     expect(() => Email.fromString('')).toThrow();
   });
 
+  it('an address without a local part is rejected', () => {
+    expect(() => Email.fromString('@example.com')).toThrow();
+  });
+
+  it('a domain without a dot is rejected', () => {
+    expect(() => Email.fromString('user@example')).toThrow();
+  });
+
+  it.each(['user@.example.com', 'user@example.com.', 'user@example..com'])(
+    'a domain with an empty label is rejected: %s',
+    (email) => {
+      expect(() => Email.fromString(email)).toThrow();
+    },
+  );
+
+  it('an address with more than one @ is rejected', () => {
+    expect(() => Email.fromString('user@@example.com')).toThrow();
+  });
+
+  it('an address with interior whitespace is rejected', () => {
+    expect(() => Email.fromString('us er@example.com')).toThrow();
+  });
+
+  it('a domain with more than two labels is accepted', () => {
+    const sut = Email.fromString('user@mail.example.co.uk');
+    expect(sut.asString()).toBe('user@mail.example.co.uk');
+  });
+
   it('two email objects with the same address are equal', () => {
     const sut = Email.fromString('user@example.com');
     const other = Email.fromString('user@example.com');
