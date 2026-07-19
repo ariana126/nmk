@@ -104,16 +104,23 @@ Validates the `Authorization: Bearer <token>` header using `JwtService`. Injects
 Liveness probe consumed by the Docker Compose healthcheck for the `app` service:
 - `GET /health` — returns `200 {"status":"ok"}`.
 
+Routes here are written as the controller declares them. `configureApp` sets a global `api` prefix,
+so the probe is actually reached at `/api/health` — which is what the healthcheck polls.
+
 Deliberately dependency-free: it does not query the database, so it reports whether the HTTP server is
 answering, not whether Postgres is reachable (the `db` service has its own `pg_isready` healthcheck).
 `AppModule` imports it unconditionally — unlike `TestingModule`, it is mounted in production too.
 
 ### `TestingModule` / `TestingController` / `TestingService` (`http/testing/`)
-Testing-support HTTP endpoints consumed only by the BDD acceptance suite (`../../acceptance-tests`), not by application code:
+Testing-support HTTP endpoints, consumed only by an external black-box test runner — never by
+application code (reached at `/api/testing/*`, per the global prefix above):
 - `POST /testing/migrations` — runs `prisma migrate deploy` via `execFile`.
 - `POST /testing/truncate` — queries `pg_tables` for the `public` schema (excluding `_prisma_migrations`) and truncates them all with `RESTART IDENTITY CASCADE`.
 
-`AppModule` imports `TestingModule` only when `process.env.NODE_ENV !== 'production'` — never mounted in production.
+`AppModule` imports `TestingModule` only when `process.env.NODE_ENV === 'test'`. Note the condition is
+an equality, not `!== 'production'`: these endpoints are absent from development as well as production,
+and exist only on the dedicated test stack (`make test-up`, see `../../CLAUDE.md`). Nothing in a
+development or production environment can reach an endpoint that truncates every table.
 
 ### `AuthenticatedUser` + `@CurrentUser()` decorator
 `AuthenticatedUser` holds `id: Identity`. The `@CurrentUser()` parameter decorator extracts `request.user.sub` and wraps it in an `AuthenticatedUser` instance.

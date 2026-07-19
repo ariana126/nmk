@@ -20,9 +20,17 @@
 src/
 ├── framework/                  # Shared DDD building blocks
 │   ├── domain/                 # Entity, AggregateRoot, ValueObject, DomainEvent
-│   │   └── value-objects/      # Identity, Email
+│   │   ├── value/              # Identity, Email
+│   │   ├── exception/          # DomainException, EntityNotFound
+│   │   └── service/            # EntityRepository
 │   ├── application/            # Application-level exceptions
-│   └── infrastructure/         # PrismaModule, PrismaService, HttpExceptionFilter
+│   └── infrastructure/
+│       ├── persistence/        # PrismaModule, PrismaService, PrismaEntityRepository
+│       └── http/               # HttpExceptionFilter, ProblemDetail, AuthModule, JwtAuthGuard
+│           ├── decorators/     # @CurrentUser, AuthenticatedUser
+│           ├── health/         # GET /api/health liveness probe
+│           ├── testing/        # migrate/truncate endpoints — mounted only at NODE_ENV=test
+│           └── swagger/        # Reusable error schemas for @ApiResponse
 │
 └── modules/
     └── identity/               # User registration and authentication
@@ -31,8 +39,10 @@ src/
         └── infrastructure/     # Controllers, DTOs, Prisma repository, JWT/bcrypt impls
 
 prisma/
-├── schema/                     # Modular Prisma schema files
+├── schema/                     # Modular Prisma schema files (_config.prisma, identity.prisma)
 └── migrations/                 # SQL migration history
+
+docs/                           # Committed OpenAPI spec (openapi.json, openapi.yaml)
 ```
 
 ---
@@ -85,16 +95,39 @@ Structured JSON logging is provided by `nestjs-pino`. Sensitive fields (`authori
 **Prerequisites:** Docker, Docker Compose, and `make`.
 
 ```bash
-make up              # builds images and starts app + db (creates .env on first run)
-make npm db:migrate  # apply database migrations (manual step)
+make up              # build images and start both stacks (creates .env and .env.test on first run)
+make npm db:migrate  # apply database migrations to the dev stack (manual step)
 ```
 
-`make up` waits until both containers are healthy before it returns, so the API is guaranteed to be
+`make up` waits until every container is healthy before it returns, so the API is guaranteed to be
 answering by the time you run the next command. Health is reported by `GET /api/health`, a public
 liveness probe that returns `200 {"status":"ok"}`.
 
 The app runs at http://localhost:3000 with hot reload — edit files under `src/` and see changes live.
 Swagger docs: http://localhost:3000/api-docs. Prisma Studio: `make npm db:studio` (http://localhost:5555).
+
+### Two stacks
+
+`make up` starts the development stack **and** an isolated test stack — the same image with a
+different env file, on ports 3001/5433 with `NODE_ENV=test` and its own database volume. Only the
+test stack mounts the endpoints that migrate and truncate the database, so no test run can reach
+development data. `make test-up`, `make test-down` and `make test-reset` target it on its own;
+`make down` and `make reset` act on both. Full detail in `CLAUDE.md`.
+
+### Checks
+
+```bash
+make lint                # ESLint check
+make format              # Prettier check
+make lint-architecture   # DDD + CQRS layer boundaries
+make lint-swagger        # committed OpenAPI spec vs. the code
+make run-unit-tests      # Jest unit tests
+```
+
+None of these needs a running stack — each starts a throwaway container, so they are safe to run
+while `make up`'s stack is live. `make fix-lint`, `make fix-format` and `make generate-swagger` are
+the writing counterparts. From the repo root, `make run-guardrails` runs every check CI enforces and
+`make fix-violations` applies every automated fix.
 
 Run `make help` to see all available commands, or `make npm <script>` to run any script from
 the table below inside the container.
@@ -103,15 +136,26 @@ the table below inside the container.
 
 ## Scripts
 
+Every script below has a `make` target wrapping it — prefer the target (see the previous section).
+The bare check scripts are read-only; the `:fix` variants write.
+
 | Script | Description |
 |---|---|
 | `start:dev` | Start with hot reload |
+| `start:prod` | Run the compiled build |
 | `build` | Compile TypeScript |
-| `lint` | Lint and auto-fix |
+| `lint` | ESLint check — reports, changes nothing |
+| `lint:fix` | ESLint with auto-fix |
+| `format` | Prettier check — reports, changes nothing |
+| `format:fix` | Prettier auto-format |
+| `depcruise` | Check the DDD + CQRS layer boundaries (dependency-cruiser) |
 | `test` | Run Jest unit tests |
+| `test:cov` | Jest with a coverage report |
 | `db:migration:create` | Create a new migration |
 | `db:migrate` | Apply pending migrations |
 | `db:migration:status` | Show migration status |
+| `db:validate-config` | Validate the Prisma schema |
+| `db:format-config` | Format the Prisma schema files |
 | `db:studio` | Open Prisma Studio |
 | `db:generate-client` | Regenerate Prisma client |
 | `swagger:generate` | Build + export OpenAPI spec as JSON and YAML |

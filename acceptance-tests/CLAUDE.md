@@ -6,7 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Black-box BDD acceptance suite (Cucumber + Serenity/JS + TypeScript) for the sibling `../backend` project, written with the **Screenplay Pattern**.
 
-The suite only ever talks to the backend over HTTP. No importing backend code, no direct database access — preconditions that can't be set up through the API don't get set up. It runs against a live backend + Postgres, so that stack must already be running (`../backend`, via its own `make up`).
+The suite only ever talks to the backend over HTTP. No importing backend code, no direct database access — preconditions that can't be set up through the API don't get set up.
+
+It runs against the backend's **test stack** — a second Compose project (`nmk-backend-test`) serving
+the same app on port **3001** with `NODE_ENV=test` and its own database. Not the dev stack on 3000.
+The testing endpoints this suite depends on (`POST /api/testing/migrations` and `/truncate`) mount only
+at `NODE_ENV === 'test'`, so they simply don't exist on 3000 — and a run can never truncate dev data.
+
+Start it with `make -C ../backend test-up`, or let the root `make run-acceptance-tests` do the whole
+sequence: test stack up, this container up, suite run.
 
 ## Commands
 
@@ -60,9 +68,11 @@ step-definitions/<feature-area>/*.steps.ts   # Thin: each step just delegates to
 screenplay/
 ├── common/                             # Reusable across feature areas
 │   ├── notes.ts                        # AccountNotes; TheDetailsTheySignedUpWith, TheirAccessToken
-│   └── problem-detail.ts               # EnsureProblemDetail, EnsureValidationErrorFor, FieldsThatFailedValidation
-├── registration/                       # SignUp, EnsureSignedUp, TheOmittedSignUpField, signUpDetailsOf
-├── authentication/                     # LogIn, EnsureLoggedIn, EnsureNotLoggedIn, EnsureCredentialsRejected
+│   └── problem-detail.ts               # EnsureProblemDetail, EnsureValidationErrorFor, FieldsThatFailedValidation, problemTypeFor
+├── registration/
+│   ├── sign-up.ts                      # SignUp, EnsureSignedUp, TheOmittedSignUpField, EnsureRejectedAsDuplicateEmail
+│   └── sign-up-details.ts              # signUpDetailsOf, signUpDetailsWithout, requiredSignUpFields
+├── authentication/                     # LogIn, EnsureLoggedIn, EnsureNotLoggedIn, EnsureCredentialsRejected, TheirOwnCredentials
 └── profile/                            # ViewTheirProfile, TheProfile
 support/
 ├── actors.ts                           # Cast: assigns abilities to every actor
@@ -94,7 +104,9 @@ Step definitions stay thin — they translate a Gherkin line into `actor.attempt
 - **`BeforeAll`** — `configure({ crew })` (Serenity reporters, once for the whole suite) and `POST /api/testing/migrations`.
 - **`Before`** — `POST /api/testing/truncate`, then `engage(new Actors(apiBaseUrl))`. Engaging a new cast per scenario gives fresh actors with fresh, empty notepads.
 
-Both testing endpoints are exposed by the backend only when `NODE_ENV !== 'production'`.
+Both testing endpoints are exposed by the backend only when `NODE_ENV === 'test'` — which is why this
+suite must be pointed at the test stack, and why pointing it at the dev stack fails in `BeforeAll`
+with a 404 rather than quietly wiping a development database.
 
 ### Assertion conventions
 
@@ -121,6 +133,11 @@ The target is named for what it produces, not for the tool that produces it — 
 
 **Resource URIs must be relative, with no leading slash.** Serenity's `CallAnApi` resolves them with `new URL(uri, apiBaseUrl)` — *not* axios's `combineURLs`. `new URL('/users', 'http://host/api')` discards the `/api` segment and yields `http://host/users`, so every request 404s. `support/config.ts` guarantees the base URL ends in a slash; always write `PostRequest.to('users')`, never `PostRequest.to('/users')`.
 
+**`localhost` works because the container shares the host's network.** `docker-compose.yml` sets
+`network_mode: host`, so `http://localhost:3001` inside the container reaches the port the backend's
+test stack published on the host. There is no shared Docker network between the two projects, and no
+service-name DNS — `http://app:3001` would not resolve.
+
 **`actorCalled()` moves the spotlight.** Steps with no explicit subject (`Then the sign-up should be rejected...`) resolve their actor via `actorInTheSpotlight()`, which is whoever was named last. That is what the `{actorName}` parameter type is for: it yields a bare name string *without* summoning the actor. In `Fateme signs up with Ariana's email`, using `{actor}` for both names would leave **Ariana** in the spotlight, and the next `Then` would read her empty `LastResponse` instead of Fateme's.
 
 The parameter types (`support/parameter-types.ts`):
@@ -136,4 +153,5 @@ The parameter types (`support/parameter-types.ts`):
 
 `.env` (copied from `.env.example` by `make setup`, which `make up` runs for you):
 
-- `API_BASE_URL` — the backend's API base, e.g. `http://localhost:3000/api`. The only variable.
+- `API_BASE_URL` — the backend's API base. The only variable. Defaults to
+  `http://localhost:3001/api`: the **test** stack, not the dev stack on 3000.

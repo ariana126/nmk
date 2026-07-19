@@ -6,9 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A monorepo of independent projects, each with its own Makefile, Docker Compose stack, and CLAUDE.md:
 
-- **`backend/`** — NestJS + Prisma + Postgres API (DDD + CQRS). Compose project `nmk-backend` (`app`, `db`).
+- **`backend/`** — NestJS + Prisma + Postgres API (DDD + CQRS). Two Compose projects, both `app` + `db`:
+  `nmk-backend` (development, ports 3000/5432) and `nmk-backend-test` (`NODE_ENV=test`, ports 3001/5433).
+  `make up` starts both; the test stack is what the acceptance suite drives.
 - **`acceptance-tests/`** — black-box BDD suite (Cucumber + Serenity/JS) driving the backend over HTTP. Compose project `nmk-acceptance-tests` (`app`).
-- **`frontend/`** — empty placeholder.
+- **`frontend/`** — empty placeholder. No Makefile yet, so it is not in `PROJECTS`.
 
 **Read the subproject's own CLAUDE.md before working inside it.** This file covers only what is cross-cutting.
 
@@ -18,7 +20,7 @@ The root Makefile orchestrates the subprojects by delegating to their Makefiles.
 
 ```bash
 make up                     # cold start every project (backend first, waits until healthy)
-make migrate                # apply Prisma migrations (manual step, not part of `make up`)
+make migrate                # apply Prisma migrations to the dev stack (manual step, not part of `make up`)
 make run-unit-tests         # backend Jest unit tests (no running stack needed)
 make run-acceptance-tests   # start the test environment, then run the acceptance suite
 make open-living-documentation  # render the living documentation and open it in the browser
@@ -26,7 +28,7 @@ make run-guardrails         # run every check CI enforces, cheapest first
 make fix-violations         # apply every fix those checks would demand
 make ps                     # container status across all projects, in one table
 make down                   # stop everything
-make reset                  # stop everything and wipe the database volume
+make reset                  # stop everything and wipe both backend stacks' database volumes
 make help                   # list all targets
 ```
 
@@ -55,9 +57,15 @@ Use the slash form, not `make backend up` — Make would read `up` as a second r
 
 `make up` does **not** migrate. The acceptance suite applies migrations itself (`POST /api/testing/migrations` in its `BeforeAll` hook), so `make run-acceptance-tests` is unaffected; run `make migrate` when driving the app by hand.
 
+`make migrate` reaches the dev stack only — it is `docker compose exec` against `nmk-backend`. The test
+stack never needs it, because the suite migrates it through that endpoint. And that endpoint exists
+only there: `TestingModule` mounts at `NODE_ENV === 'test'`, which is exactly why the second stack
+exists rather than the suite reusing the dev one. See `backend/CLAUDE.md`.
+
 ## Continuous integration
 
-`.github/workflows/ci.yml` gates every pull request. Six jobs run in parallel, one per check:
+`.github/workflows/ci.yml` gates every pull request, and also runs on each push to `main` and on
+`workflow_dispatch`. Six jobs run in parallel, one per check:
 `make format`, `make lint`, `make lint-architecture`, `make lint-swagger`, `make run-unit-tests`,
 `make run-acceptance-tests`. Each job is a checkout plus a single root target — no npm, no Node
 setup, no secrets, because every target already builds its own container and creates its `.env`

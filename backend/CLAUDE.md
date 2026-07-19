@@ -7,14 +7,47 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 The app runs in Docker; the Makefile wraps Docker Compose. Prerequisites: Docker, Docker Compose, `make`.
 
 ```bash
-make up                  # build (if needed) and start app + db, waiting until both are healthy
-make down                # stop and remove containers
-make logs                # tail logs from all containers
-make sh                  # open a shell in the app container
-make npm <script>        # run any package.json script inside the container
+make up                  # build (if needed) and start both stacks, waiting until every container is healthy
+make down                # stop and remove both stacks' containers
+make reset               # stop both stacks and wipe both database volumes
+make logs                # tail logs from the dev stack
+make sh                  # open a shell in the dev stack's app container
+make ps                  # status of every container in both stacks
+make npm <script>        # run any package.json script inside the dev stack's app container
 make run-unit-tests      # Jest unit tests (src/**/*.spec.ts), in a one-off container
 make help                # list all available make targets
 ```
+
+### Two stacks
+
+There are two Docker Compose projects, and `up`, `down` and `reset` act on **both**:
+
+| | dev | test |
+|---|---|---|
+| Compose project | `nmk-backend` | `nmk-backend-test` |
+| Files | `docker-compose.yml` | `+ docker-compose.test.yml` |
+| Env file | `.env` (from `.env.example`) | `.env.test` (from `.env.test.example`) |
+| `NODE_ENV` | `development` | `test` |
+| App / Postgres port | 3000 / 5432 | 3001 / 5433 |
+| Logging | pretty-printed, `debug` | `LOG_LEVEL=silent` |
+
+The two override files differ by exactly one line — the test stack is the same image with a different
+env file. Separate ports and separate volumes are what make them independent.
+
+Target the test stack on its own:
+
+```bash
+make test-up             # build (if needed) and start just the test stack, waiting until healthy
+make test-down           # stop and remove just the test stack
+make test-reset          # stop the test stack and wipe its database volume
+make test-setup          # create .env.test from .env.test.example (make up runs this for you)
+```
+
+**Why the split.** `TestingModule` — which exposes an endpoint that truncates every table — mounts only
+when `NODE_ENV === 'test'`. So an external test runner needs a stack running at that value, and the
+split guarantees the endpoint is unreachable on the dev stack while a run in progress can never touch
+dev data. The ports differ for the same reason: both stacks can be up at once, which is the normal
+state after `make up`.
 
 `make run-unit-tests` needs nothing running: it uses `docker compose run --rm --no-deps`, so the
 tests get a throwaway container with no database behind it and no published ports, which is why
@@ -55,13 +88,32 @@ make npm db:migrate          # apply Prisma migrations (manual step after `make 
 make npm db:generate-client  # regenerate Prisma client
 ```
 
+`make npm` runs `docker compose exec` against the **dev** stack, so `make npm db:migrate` migrates
+`nmk-backend` only. The test stack migrates itself, through `POST /api/testing/migrations`.
+
 Run a single Jest test file (from a shell inside the container via `make sh`):
 ```bash
 npx jest path/to/file.spec.ts
 ```
 
-`make up` passes `--wait` to Docker Compose, so it only returns once both containers report healthy —
-the `db` service via `pg_isready`, the `app` service via the `GET /api/health` liveness probe.
+`make up` passes `--wait` to Docker Compose for each stack, so it only returns once every container
+reports healthy — the `db` service via `pg_isready`, the `app` service via the `GET /api/health`
+liveness probe.
+
+## Environment
+
+Neither `.env` nor `.env.test` is committed; `make setup` and `make test-setup` copy them from the
+committed `.env.example` / `.env.test.example`, and `make up` runs both for you. The examples hold
+working local defaults, which is why every CI job can create its own env and run with no secrets.
+
+| Variable | Notes |
+|---|---|
+| `NODE_ENV` | `development` / `test` / `production`. Gates `TestingModule` (`=== 'test'`) and Swagger UI + pretty logs (`!== 'production'`). |
+| `APP_PORT` | Defaults to 3000; the test stack sets 3001. |
+| `STUDIO_PORT` | Prisma Studio; defaults to 5555, test stack 5556. |
+| `POSTGRES_USER` / `_PASSWORD` / `_DB` / `_PORT` | Compose builds `DATABASE_URL` from these — don't set it directly. |
+| `JWT_SECRET` | Read via `ConfigService.getOrThrow` in `AuthModule`; boot fails without it. |
+| `LOG_LEVEL` | Overrides the pino level. The test stack sets `silent` to keep suite output readable. |
 
 ## Architecture
 
@@ -127,13 +179,15 @@ exception mappers (see `src/framework/CLAUDE.md`).
 
 ### Testing
 
-**Unit tests** — Jest, co-located `*.spec.ts` files next to the code they test. Run via `make npm test`.
+**Unit tests** — Jest, co-located `*.spec.ts` files next to the code they test. Run via
+`make run-unit-tests` (not `make npm test` — prefer the targets, as above).
 
 **Testing-support endpoints** (`TestingModule`, `src/framework/infrastructure/http/testing/`) let an external test runner apply migrations and reset database state between runs:
 - `POST /api/testing/migrations` — runs `prisma migrate deploy`.
 - `POST /api/testing/truncate` — truncates all application tables.
 
-`TestingModule` is only imported into `AppModule` when `NODE_ENV !== 'production'` — it is never reachable in production.
+`TestingModule` is imported into `AppModule` only when `NODE_ENV === 'test'`, so these endpoints exist
+on the test stack alone — not in development, not in production. See *Two stacks* above.
 
 ### Path Aliases
 
