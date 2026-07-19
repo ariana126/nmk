@@ -1,0 +1,41 @@
+name: Publish living documentation
+
+# Runs on every new change to main — whether merged via PR or pushed directly.
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+# Serialise Pages deploys; a newer push to main supersedes an in-flight publish.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Render and publish living documentation
+    runs-on: ubuntu-latest
+    # Least privilege for the official Pages deployment.
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Same two-step shape as ci.yml's acceptance-tests job: run the suite, then
+      # aggregate what it recorded into the browsable HTML site. render is best-effort
+      # so a flaky run still publishes whatever was captured.
+      - run: make run-acceptance-tests
+      - name: Render living documentation
+        if: always()
+        run: make render-living-documentation
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: acceptance-tests/target/site/serenity
+      - id: deploy
+        uses: actions/deploy-pages@v4

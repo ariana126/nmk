@@ -82,6 +82,14 @@ The acceptance-tests job also renders the living documentation
 (`make render-living-documentation`) and uploads `acceptance-tests/target/site/serenity` as the
 `living-documentation` artifact — on every run, pass or fail.
 
+A separate workflow, `.github/workflows/publish-living-documentation.yml`, publishes that
+documentation to a durable URL. On every push to `main` it re-runs the suite, renders the site
+with the same two targets, and deploys `acceptance-tests/target/site/serenity` to GitHub Pages
+(`actions/deploy-pages`). Where CI's artifact is per-run and download-only, this keeps the latest
+`main` documentation browsable at the repo's Pages URL. It is a publish step, not a gate — no
+root target, no `run-guardrails` line. Enabling it once requires setting Pages' source to
+"GitHub Actions" in the repository settings.
+
 ## The dependency runs one way
 
 `acceptance-tests` drives `backend` over HTTP and knows nothing else about it — no importing backend code, no direct database access.
