@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down restart build logs ps sh npm lint fix-lint format fix-format lint-architecture run-unit-tests reset test-setup test-up test-down test-reset
+.PHONY: help setup up down restart build logs ps sh npm lint fix-lint format fix-format lint-architecture lint-swagger generate-swagger run-unit-tests reset test-setup test-up test-down test-reset
 
 COMPOSE_TEST := docker compose --env-file .env.test -f docker-compose.yml -f docker-compose.test.yml
 
@@ -49,6 +49,12 @@ fix-format: ## Prettier auto-format
 
 lint-architecture: ## Check the DDD + CQRS layer boundaries (dependency-cruiser)
 	docker compose exec app npm run depcruise
+
+lint-swagger: ## Check the committed OpenAPI spec matches the code (read-only, no changes)
+	docker compose exec app npm run swagger:check
+
+generate-swagger: ## Regenerate docs/openapi.json and docs/openapi.yaml from the code
+	docker compose exec app npm run swagger:generate
 
 run-unit-tests: setup ## Run the Jest unit tests in a one-off container (no database needed)
 	docker compose run --rm --no-deps app npm test

@@ -28,7 +28,8 @@
     "db:studio": "prisma studio --port ${STUDIO_PORT:-5555} --browser none",
     "db:generate-client": "prisma generate",
     "postinstall": "prisma generate",
-    "swagger:generate": "nest build && node -r tsconfig-paths/register dist/src/generate-swagger.js"
+    "swagger:generate": "nest build && node -r tsconfig-paths/register dist/src/generate-swagger.js",
+    "swagger:check": "nest build && node -r tsconfig-paths/register dist/src/generate-swagger.js --check"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

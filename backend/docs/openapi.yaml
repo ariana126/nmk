@@ -1,5 +1,22 @@
 openapi: 3.0.0
 paths:
+  /api/health:
+    get:
+      operationId: HealthController_check
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                properties:
+                  status:
+                    type: string
+                    example: ok
+      summary: Liveness probe
+      tags:
+        - Health
   /api/users:
     post:
       operationId: UserController_register
@@ -224,8 +241,8 @@ components:
           example: john.doe@example.com
         password:
           type: string
-          minLength: 8
-          example: password123
+          minLength: 12
+          example: password12345
         firstName:
           type: string
           example: John

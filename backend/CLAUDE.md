@@ -27,7 +27,14 @@ make fix-lint            # ESLint + auto-fix
 make format              # Prettier check (read-only, no changes)
 make fix-format          # Prettier auto-format
 make lint-architecture   # check the DDD + CQRS layer boundaries
+make lint-swagger        # check docs/openapi.* still matches the code (read-only)
+make generate-swagger    # rewrite docs/openapi.json and docs/openapi.yaml
 ```
+
+`docs/openapi.json` and `docs/openapi.yaml` are committed, so they drift the moment a controller,
+DTO, or `@Api*` decorator changes without a regeneration. `make lint-swagger` rebuilds the document
+in memory and compares it to what is on disk; `make generate-swagger` is the fix. Both boot the app,
+so the stack must be up.
 
 Make targets are verb-object and hyphenated (`fix-format`, `lint-architecture`); the
 package.json scripts they wrap keep their own names (`format:fix`, `depcruise`). Prefer the
@@ -40,7 +47,6 @@ make npm start:dev           # (already running via `make up`) hot reload on por
 make npm test:cov            # Jest with coverage
 make npm db:migrate          # apply Prisma migrations (manual step after `make up`)
 make npm db:generate-client  # regenerate Prisma client
-make npm swagger:generate    # build + export OpenAPI spec
 ```
 
 Run a single Jest test file (from a shell inside the container via `make sh`):

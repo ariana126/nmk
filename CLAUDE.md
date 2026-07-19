@@ -35,9 +35,11 @@ make fix-lint            # ESLint + auto-fix across every project
 make format              # Prettier check across every project (read-only, no changes)
 make fix-format          # Prettier auto-format across every project
 make lint-architecture   # check the backend's DDD + CQRS layer boundaries
+make lint-swagger        # check the backend's committed OpenAPI spec matches the code
+make generate-swagger    # regenerate the backend's OpenAPI spec
 ```
 
-These run inside the containers, so the stacks must already be up. They stop at the first project that fails. `lint-architecture` is backend-only — no other project has layer boundaries to enforce.
+These run inside the containers, so the stacks must already be up. They stop at the first project that fails. `lint-architecture` and `lint-swagger` are backend-only — no other project has layer boundaries to enforce or an OpenAPI spec to keep in sync.
 
 Reach a single project's Makefile with `<project>/<target>`: `make backend/sh`, `make backend/logs`, `make acceptance-tests/report`.
 

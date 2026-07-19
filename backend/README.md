@@ -114,4 +114,5 @@ the table below inside the container.
 | `db:migration:status` | Show migration status |
 | `db:studio` | Open Prisma Studio |
 | `db:generate-client` | Regenerate Prisma client |
-| `swagger:generate` | Build + export OpenAPI spec as JSON |
+| `swagger:generate` | Build + export OpenAPI spec as JSON and YAML |
+| `swagger:check` | Verify the committed OpenAPI spec still matches the code |

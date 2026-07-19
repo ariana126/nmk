@@ -5,7 +5,7 @@ MAKEFLAGS += --no-print-directory
 # Add `frontend` here once it has a Makefile speaking the same vocabulary.
 PROJECTS := backend acceptance-tests
 
-.PHONY: help setup up down restart build ps logs lint fix-lint format fix-format lint-architecture run-unit-tests run-acceptance-tests report migrate reset FORCE
+.PHONY: help setup up down restart build ps logs lint fix-lint format fix-format lint-architecture lint-swagger generate-swagger run-unit-tests run-acceptance-tests report migrate reset FORCE
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
@@ -47,6 +47,12 @@ fix-format: ## Prettier auto-format across every project
 
 lint-architecture: ## Check the backend's DDD + CQRS layer boundaries
 	@$(MAKE) -C backend lint-architecture
+
+lint-swagger: ## Check the backend's committed OpenAPI spec matches the code
+	@$(MAKE) -C backend lint-swagger
+
+generate-swagger: ## Regenerate the backend's OpenAPI spec
+	@$(MAKE) -C backend generate-swagger
 
 migrate: ## Apply Prisma migrations against the running backend
 	@$(MAKE) -C backend npm db:migrate
