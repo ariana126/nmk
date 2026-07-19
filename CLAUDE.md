@@ -21,6 +21,7 @@ make up                     # cold start every project (backend first, waits unt
 make migrate                # apply Prisma migrations (manual step, not part of `make up`)
 make run-unit-tests         # backend Jest unit tests (no running stack needed)
 make run-acceptance-tests   # start the test environment, then run the acceptance suite
+make open-living-documentation  # render the living documentation and open it in the browser
 make run-guardrails         # run every check CI enforces, cheapest first
 make fix-violations         # apply every fix those checks would demand
 make ps                     # container status across all projects, in one table

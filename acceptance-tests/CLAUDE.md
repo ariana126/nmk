@@ -18,6 +18,7 @@ make down                # stop and remove the container
 make sh                  # open a shell in the container
 make run                 # run the full acceptance suite
 make render-living-documentation   # render the living documentation from the last run
+make open-living-documentation     # render it, then open it in the browser
 make npm <script>        # run any package.json script inside the container
 make help                # list all available make targets
 ```
@@ -110,7 +111,9 @@ Two phases:
 1. `make run` — the `@serenity-js/serenity-bdd` crew member writes one raw JSON file per scenario into `target/site/serenity/`.
 2. `make render-living-documentation` — shells out to the Serenity BDD **Java** CLI to aggregate those into a browsable HTML site at `target/site/serenity/index.html`. This is why the Dockerfile installs `default-jre-headless`. It renders whatever the last run produced; it does not run any tests.
 
-`target/` is bind-mounted, so the living documentation opens straight from the host. Artifacts **accumulate** across runs — if the counts look wrong, `rm -rf target/` and re-run.
+`target/` is bind-mounted, so the living documentation opens straight from the host. `make open-living-documentation` does phase 2 and then opens `index.html` in the default browser — the one target that runs on the host rather than in a container, because a browser cannot be launched from inside one. Like `render-living-documentation`, it needs the container up.
+
+Artifacts **accumulate** across runs — if the counts look wrong, `rm -rf target/` and re-run.
 
 The target is named for what it produces, not for the tool that produces it — the npm script it wraps keeps its own name (`npm run report`), the same way `lint-architecture` wraps `npm run depcruise` in the backend.
 

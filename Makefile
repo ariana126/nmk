@@ -5,7 +5,7 @@ MAKEFLAGS += --no-print-directory
 # Add `frontend` here once it has a Makefile speaking the same vocabulary.
 PROJECTS := backend acceptance-tests
 
-.PHONY: help setup up down restart build ps logs lint fix-lint format fix-format lint-architecture lint-swagger generate-swagger run-unit-tests run-acceptance-tests run-guardrails fix-violations render-living-documentation migrate reset FORCE
+.PHONY: help setup up down restart build ps logs lint fix-lint format fix-format lint-architecture lint-swagger generate-swagger run-unit-tests run-acceptance-tests run-guardrails fix-violations render-living-documentation open-living-documentation migrate reset FORCE
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-28s\033[0m %s\n", $$1, $$2}'
@@ -86,6 +86,9 @@ fix-violations: ## Apply every fix the guardrails would otherwise demand
 
 render-living-documentation: ## Render the living documentation from the last acceptance run
 	@$(MAKE) -C acceptance-tests render-living-documentation
+
+open-living-documentation: ## Render the living documentation and open it in the browser
+	@$(MAKE) -C acceptance-tests open-living-documentation
 
 reset: ## Stop everything and wipe the database volume
 	@$(MAKE) -C acceptance-tests down
