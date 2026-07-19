@@ -2,6 +2,9 @@ name: CI
 
 on:
   pull_request:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
 
 # A new push to the same pull request cancels the run it supersedes.
 concurrency:
