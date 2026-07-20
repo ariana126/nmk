@@ -7,10 +7,12 @@ COMPOSE_TEST := docker compose --env-file .env.test -f docker-compose.yml -f doc
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
-setup: ## Create .env from .env.example if it doesn't exist yet
+# Both stacks belong to this project, so setup means both env files — the root Makefile only
+# ever calls a project's `setup`, and it must not need to know a second one exists.
+setup: test-setup ## Create .env and .env.test from their .example files if they don't exist yet
 	@[ -f .env ] || cp .env.example .env
 
-up: setup test-setup ## Build (if needed) and start the dev + test stacks, waiting until healthy
+up: setup ## Build (if needed) and start the dev + test stacks, waiting until healthy
 	docker compose up --build -d --wait
 	$(COMPOSE_TEST) up --build -d --wait
 
@@ -68,7 +70,7 @@ reset: ## Stop the dev + test stacks and wipe their database volumes
 test-setup: ## Create .env.test from .env.test.example if it doesn't exist yet
 	@[ -f .env.test ] || cp .env.test.example .env.test
 
-test-up: setup test-setup ## Build (if needed) and start the test stack (NODE_ENV=test), waiting until healthy
+test-up: setup ## Build (if needed) and start the test stack (NODE_ENV=test), waiting until healthy
 	$(COMPOSE_TEST) up --build -d --wait
 
 test-down: ## Stop and remove the test stack containers

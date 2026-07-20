@@ -13,7 +13,7 @@ help: ## Show available commands
 	@echo "  Run a single project's target with <project>/<target>, e.g. make backend/sh"
 	@echo "  Projects: $(PROJECTS)"
 
-setup: ## Create each project's .env from its .env.example
+setup: ## Create each project's env files from their .example counterparts
 	@for p in $(PROJECTS); do $(MAKE) -C $$p setup || exit $$?; done
 
 up: ## Cold start: build (if needed) and start every project, waiting until the backend is healthy

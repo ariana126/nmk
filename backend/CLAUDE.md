@@ -40,7 +40,7 @@ Target the test stack on its own:
 make test-up             # build (if needed) and start just the test stack, waiting until healthy
 make test-down           # stop and remove just the test stack
 make test-reset          # stop the test stack and wipe its database volume
-make test-setup          # create .env.test from .env.test.example (make up runs this for you)
+make test-setup          # create .env.test from .env.test.example (make setup already does this)
 ```
 
 **Why the split.** `TestingModule` — which exposes an endpoint that truncates every table — mounts only
@@ -102,9 +102,13 @@ liveness probe.
 
 ## Environment
 
-Neither `.env` nor `.env.test` is committed; `make setup` and `make test-setup` copy them from the
-committed `.env.example` / `.env.test.example`, and `make up` runs both for you. The examples hold
-working local defaults, which is why every CI job can create its own env and run with no secrets.
+Neither `.env` nor `.env.test` is committed. `make setup` creates **both**, copying them from the
+committed `.env.example` / `.env.test.example`; `make up` runs it for you. Both stacks belong to
+this project, so one `setup` covers the whole project — which is what lets the root Makefile call
+a plain `setup` per project without knowing the backend has a second env file. (`make test-setup`
+still exists on its own, for driving the test stack in isolation.) Neither copy overwrites an
+existing file, so local edits survive. The examples hold working local defaults, which is why
+every CI job can create its own env and run with no secrets.
 
 | Variable | Notes |
 |---|---|
