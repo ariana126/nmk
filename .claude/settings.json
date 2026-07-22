@@ -1,7 +1,4 @@
 {
-  "enabledPlugins": {
-    "typescript-lsp@claude-plugins-official": true
-  },
   "hooks": {
     "PreToolUse": [
       {
@@ -26,5 +23,10 @@
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "typescript-lsp@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true
   }
 }
