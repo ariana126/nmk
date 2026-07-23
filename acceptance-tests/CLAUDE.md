@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Black-box BDD acceptance suite (Cucumber + Serenity/JS + TypeScript) for the sibling `../backend` project, written with the **Screenplay Pattern**.
 
+**Skills.** `handbook:screenplay-guideline` is the authority on this suite's structure and anti-patterns (with `handbook:test-guideline` for black-box test design) — invoke it before writing automation.
+
 The suite only ever talks to the backend over HTTP. No importing backend code, no direct database access — preconditions that can't be set up through the API don't get set up.
 
 It runs against the backend's **test stack** — a second Compose project (`nmk-backend-test`) serving

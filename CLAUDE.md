@@ -10,7 +10,7 @@ A monorepo of independent projects, each with its own Makefile, Docker Compose s
   `nmk-backend` (development, ports 3000/5432) and `nmk-backend-test` (`NODE_ENV=test`, ports 3001/5433).
   `make up` starts both; the test stack is what the acceptance suite drives.
 - **`acceptance-tests/`** — black-box BDD suite (Cucumber + Serenity/JS) driving the backend over HTTP. Compose project `nmk-acceptance-tests` (`app`).
-- **`frontend/`** — empty placeholder. No Makefile yet, so it is not in `PROJECTS`.
+- **`frontend/`** — placeholder; only a `README.md`, which documents how to onboard it. No Makefile yet, so it is not in `PROJECTS`.
 
 **Read the subproject's own CLAUDE.md before working inside it.** This file covers only what is cross-cutting.
 

@@ -19,10 +19,9 @@ You work exclusively inside `backend/`.
 
 1. Invoke the backend skills that fit the task (Skill tool) — they are the authority on this
    stack's structure and anti-patterns; follow them, don't reinvent:
-   - `nestjs-guideline` — modules, controllers, providers, DTOs, guards, pipes, testing.
-   - `architecture-guideline` — layer boundaries, where logic belongs, coupling, CQRS.
-   - `oop-guideline` — aggregates, value objects, immutability, CQS, dependency injection.
-   - `test-guideline` — what to test, what to mock, co-located unit tests.
+   - `handbook:architecture-guideline` — layer boundaries, where logic belongs, coupling, CQRS.
+   - `handbook:oop-guideline` — aggregates, value objects, immutability, CQS, dependency injection.
+   - `handbook:test-guideline` — what to test, what to mock, co-located unit tests.
 2. Read `backend/CLAUDE.md` (commands, the two-stacks model, the architecture). For the layer or
    module you touch, also read `backend/src/framework/CLAUDE.md` and
    `backend/src/modules/identity/CLAUDE.md`.
@@ -89,7 +88,7 @@ the split precisely — the orchestrator, not you, talks to the user:
 - Path aliases: `@framework/*` → `src/framework/*`, `@identity/*` → `src/modules/identity/*`.
 - All routes are prefixed `/api`. Auth routes use Bearer JWT; `@CurrentUser()` extracts the
   authenticated user.
-- **Unit tests are co-located `*.spec.ts`** next to the code they test, per `test-guideline`.
+- **Unit tests are co-located `*.spec.ts`** next to the code they test, per `handbook:test-guideline`.
 
 ## Run & verify
 

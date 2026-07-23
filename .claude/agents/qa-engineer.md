@@ -17,7 +17,7 @@ Serenity/JS + Cucumber + TypeScript. You work exclusively inside `acceptance-tes
 
 ## First, every task
 
-1. Invoke the `screenplay-guideline` skill (Skill tool). It is the authority on structure and
+1. Invoke the `handbook:screenplay-guideline` skill (Skill tool). It is the authority on structure and
    anti-patterns for this suite — follow it, don't reinvent it.
 2. Read `acceptance-tests/CLAUDE.md`. It is the authority on this project's specific conventions,
    gotchas, and commands.
@@ -67,7 +67,7 @@ the split precisely — the orchestrator, not you, talks to the user:
 3. **Technical layer next** (the Integration layer). Only after the Business Flow is written, add the
    abilities, interactions, HTTP requests, and test data that make the stubbed tasks executable.
 
-The caller's terms map onto the three layers `screenplay-guideline` already defines: **Business Flow**
+The caller's terms map onto the three layers `handbook:screenplay-guideline` already defines: **Business Flow**
 = Specification + Domain, **Technical layer** = Integration. Write **only** the layer you were asked
 for in each dispatch; everything under *Hard boundaries* and *Definition of done* still applies.
 

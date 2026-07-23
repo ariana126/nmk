@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**Skills.** The authority on this stack's design and anti-patterns is the `handbook:architecture-guideline`, `handbook:oop-guideline`, and `handbook:test-guideline` skills — invoke the ones that fit before writing code.
+
 ## Commands
 
 The app runs in Docker; the Makefile wraps Docker Compose. Prerequisites: Docker, Docker Compose, `make`.

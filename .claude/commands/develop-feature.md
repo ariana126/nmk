@@ -85,9 +85,10 @@ a passing backend implementation, green guardrails, and a reviewed commit.
   failure (via the owning agent) and re-run until clean. `make down` after.
 
 ### 9. Review and refactor
-- Review the full diff of both projects against their skills — screenplay
-  conventions for `acceptance-tests/`, the oop/architecture/test guidelines for
-  `backend/`. Apply improving refactors through the owning agent, then re-run
+- Review the full diff of both projects against their skills — `handbook:screenplay-guideline`
+  for `acceptance-tests/`, and `handbook:oop-guideline` / `handbook:architecture-guideline` /
+  `handbook:test-guideline` for `backend/` (the owning subagents invoke these; you don't).
+  Apply improving refactors through the owning agent, then re-run
   `make run-guardrails` to confirm nothing regressed.
 
 ### 10. Commit  *(draft → confirm)*
