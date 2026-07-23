@@ -1,3 +1,4 @@
+import { Clock } from '@framework/domain';
 import {
   CanActivate,
   ExecutionContext,
@@ -9,7 +10,10 @@ import { Request } from 'express';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly clock: Clock,
+  ) {}
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
@@ -24,7 +28,10 @@ export class JwtAuthGuard implements CanActivate {
     const token = authHeader.slice(7);
 
     try {
-      const payload = this.jwtService.verify<{ sub: string }>(token);
+      const clockTimestamp = Math.floor(this.clock.now().getTime() / 1000);
+      const payload = this.jwtService.verify<{ sub: string }>(token, {
+        clockTimestamp,
+      });
       const authedRequest = request as Request & { user: { sub: string } };
       authedRequest.user = payload;
       return true;
