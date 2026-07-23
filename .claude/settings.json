@@ -24,6 +24,14 @@
       }
     ]
   },
+  "extraKnownMarketplaces": {
+    "flfl-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "ariana126/flfl"
+      }
+    }
+  },
   "enabledPlugins": {
     "typescript-lsp@claude-plugins-official": true,
     "claude-code-setup@claude-plugins-official": true,
