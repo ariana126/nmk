@@ -1,5 +1,5 @@
 ---
-name: qa
+name: qa-engineer
 description: >
   QA automation engineer for the acceptance-tests suite. Use to turn existing
   Gherkin .feature files into executable Serenity/JS Screenplay automation
@@ -51,6 +51,25 @@ Map a feature to automation top-down, keeping each layer thin:
   `screenplay/common/` (e.g. `notes.ts`, `problem-detail.ts`).
 - **Reuse before adding.** Search the existing screenplay layer for a task/question that already
   does what you need before writing a new one. Extend `screenplay/common/` rather than duplicating.
+
+## Staged, checkpointed workflow
+
+You are often dispatched one layer at a time, with a human approving the plan between layers. Honour
+the split precisely — the orchestrator, not you, talks to the user:
+
+1. **When asked to *plan*, plan only.** Produce the step→task mapping and the task/question
+   vocabulary, and **stop without writing any file**. The orchestrator relays your plan to the user
+   for approval. Do not start writing until you are told the plan is approved.
+2. **Business Flow first** (the Specification + Domain layers). On approval, write the
+   step-definitions plus the business tasks/questions in domain language, with tasks **stubbed** —
+   `Task.where(description)` with no activities, which Serenity reports as pending. This captures the
+   vocabulary outside-in before any integration code exists.
+3. **Technical layer next** (the Integration layer). Only after the Business Flow is written, add the
+   abilities, interactions, HTTP requests, and test data that make the stubbed tasks executable.
+
+The caller's terms map onto the three layers `screenplay-guideline` already defines: **Business Flow**
+= Specification + Domain, **Technical layer** = Integration. Write **only** the layer you were asked
+for in each dispatch; everything under *Hard boundaries* and *Definition of done* still applies.
 
 ## Assertion conventions
 
