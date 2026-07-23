@@ -24,6 +24,15 @@
       }
     ]
   },
+  "enabledPlugins": {
+    "typescript-lsp@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true,
+    "bookshelf@flfl-marketplace": true,
+    "handbook@flfl-marketplace": true,
+    "security-guidance@claude-plugins-official": true
+  },
   "extraKnownMarketplaces": {
     "flfl-marketplace": {
       "source": {
@@ -31,13 +40,5 @@
         "repo": "ariana126/flfl"
       }
     }
-  },
-  "enabledPlugins": {
-    "typescript-lsp@claude-plugins-official": true,
-    "claude-code-setup@claude-plugins-official": true,
-    "claude-md-management@claude-plugins-official": true,
-    "superpowers@claude-plugins-official": true,
-    "bookshelf@flfl-marketplace": true,
-    "handbook@flfl-marketplace": true
   }
 }
