@@ -31,6 +31,10 @@ BeforeAll(async function () {
 Before(async function () {
   await callTestingEndpoint('truncate');
 
+  // Back to the default frozen instant, so every scenario starts from the same
+  // point in time and scenario order never matters.
+  await callTestingEndpoint('clock/reset');
+
   // A new cast per scenario, so every actor starts with a fresh, empty notepad.
   engage(new Actors(apiBaseUrl));
 });
