@@ -1,3 +1,4 @@
+import { Clock } from '@framework/domain';
 import { RegisterUserCommand } from '@identity/application/commands/register-user/register-user.command';
 import { UserAlreadyExists } from '@identity/application/exceptions';
 import { PasswordHasher } from '@identity/domain/service/password-hasher';
@@ -10,6 +11,7 @@ export class RegisterUserHandler implements ICommandHandler<RegisterUserCommand>
   constructor(
     private readonly userRepository: UserRepository,
     private readonly passwordHasher: PasswordHasher,
+    private readonly clock: Clock,
   ) {}
 
   async execute(command: RegisterUserCommand): Promise<void> {
@@ -24,6 +26,7 @@ export class RegisterUserHandler implements ICommandHandler<RegisterUserCommand>
       hashedPassword,
       command.firstName,
       command.lastName,
+      this.clock.now(),
     );
     await this.userRepository.save(user);
   }

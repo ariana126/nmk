@@ -9,6 +9,7 @@ export class User extends AggregateRoot {
     private password: string,
     private firstName: string,
     private lastName: string,
+    private registeredAt: Date,
   ) {
     super(id);
   }
@@ -18,8 +19,16 @@ export class User extends AggregateRoot {
     password: string,
     firstName: string,
     lastName: string,
+    registeredAt: Date,
   ): User {
-    const user = new User(Identity.new(), email, password, firstName, lastName);
+    const user = new User(
+      Identity.new(),
+      email,
+      password,
+      firstName,
+      lastName,
+      registeredAt,
+    );
     user.recordThat(new UserRegistered(user.id.asString(), email.asString()));
     return user;
   }
@@ -35,6 +44,7 @@ export class User extends AggregateRoot {
       password: this.password,
       firstName: this.firstName,
       lastName: this.lastName,
+      registeredAt: this.registeredAt,
     };
   }
 }

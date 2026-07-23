@@ -10,6 +10,7 @@ export class UserMapper {
       prismaUser.password,
       prismaUser.firstName,
       prismaUser.lastName,
+      prismaUser.registeredAt,
     );
   }
 
