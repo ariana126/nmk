@@ -31,7 +31,8 @@
     "superpowers@claude-plugins-official": true,
     "bookshelf@flfl-marketplace": true,
     "handbook@flfl-marketplace": true,
-    "security-guidance@claude-plugins-official": true
+    "security-guidance@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "flfl-marketplace": {
