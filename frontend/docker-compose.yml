@@ -1,0 +1,25 @@
+name: nmk-frontend
+
+services:
+  app:
+    build: .
+    init: true
+    ports:
+      - '${APP_PORT:-4200}:4200'
+    env_file:
+      - .env
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:4200').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s

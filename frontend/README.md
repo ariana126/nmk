@@ -1,87 +1,70 @@
 # Frontend
 
-Not started yet — this directory is a placeholder. No code, no Makefile, and no entry in the root
-Makefile's `PROJECTS`, so the root targets skip it entirely.
+An Angular app, wired into the monorepo like the sibling projects: a `Makefile` speaking the shared
+target vocabulary, a Docker Compose stack named `nmk-frontend`, and an entry in the root Makefile's
+`PROJECTS` (after `backend`). So the root's fan-out targets reach it automatically.
 
-## Adding it
+Generated with [Angular CLI](https://github.com/angular/angular-cli) version 21.2.19.
 
-The root Makefile holds no logic of its own: it delegates to each subproject's Makefile and expects
-them all to speak the same vocabulary. To join, this project needs:
+## Commands
 
-1. **A Makefile** implementing the shared targets — at minimum `setup`, `up`, `down`, `build`, `ps`,
-   `logs`, `lint`, `fix-lint`, `format`, `fix-format`, and a `help` listing them. Follow
-   `../backend/Makefile` or `../acceptance-tests/Makefile`; the bare check targets must stay
-   read-only, with the `fix-` variants doing the writing.
-2. **A Docker Compose stack** named `nmk-frontend`, with a committed `.env.example` that `setup`
-   copies to `.env`. Every check should run in a throwaway container and need nothing else up — that
-   is what lets CI run each gate with no Node setup and no secrets.
-3. **A line in the root Makefile's `PROJECTS`**, placed *after* `backend` if it talks to the backend.
-   That list is in start-up order.
-
-Once those exist, `make lint`, `make format` and friends fan out to this project automatically, and
-CI covers it with no workflow change. A *new kind* of check — one no existing root target runs —
-also needs a root target, a CI job calling it, and a line in `run-guardrails`. See `../CLAUDE.md`.
-
-
-The rest of the file is what angular cli generated:
-
-
-# NmkFrontend
-
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.19.
-
-## Development server
-
-To start a local development server, run:
+Runs in Docker via the Makefile. Prerequisites: Docker, Docker Compose, `make`. From this directory:
 
 ```bash
-ng serve
+make up                  # build (if needed) and start the dev server (http://localhost:4200), waiting until it serves
+make down                # stop and remove the container
+make sh                  # open a shell in the container
+make run-unit-tests      # run the Vitest unit tests in a throwaway container
+make npm <script>        # run any package.json script inside the container
+make help                # list all available make targets
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+Code-quality checks — the bare targets are read-only; the `fix-` ones write:
 
 ```bash
-ng generate component component-name
+make lint                # ESLint check (read-only, no changes)
+make fix-lint            # ESLint + auto-fix
+make format              # Prettier check (read-only, no changes)
+make fix-format          # Prettier auto-format
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Each check starts a throwaway container (`docker compose run --rm`) and needs nothing else up.
+From the root, `make lint`, `make format`, `make run-unit-tests` and friends fan out here
+automatically; a _new kind_ of check would also need a root target, a CI job, and a `run-guardrails`
+line (see `../CLAUDE.md`). Make targets are verb-object and hyphenated (`fix-format`); the
+package.json scripts they wrap keep the colon (`format:fix`).
 
-```bash
-ng generate --help
-```
+## Working with the Angular CLI
 
-## Building
+The canonical workflow is the `make` targets above — everything runs in the container. To reach the
+raw Angular CLI, open a shell with `make sh` (then run `ng …`), or use `make npm <script>` for a
+package.json script. The common commands:
 
-To build the project run:
+### Development server
 
-```bash
-ng build
-```
+`ng serve` starts a local dev server on `http://localhost:4200/`, reloading on source changes.
+`make up` runs this in the container.
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+### Code scaffolding
 
-## Running unit tests
+`ng generate component component-name` scaffolds a component; `ng generate --help` lists every
+available schematic (components, directives, pipes, …).
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+### Building
 
-```bash
-ng test
-```
+`ng build` compiles the project into `dist/`. The production build optimizes for performance by
+default.
 
-## Running end-to-end tests
+### Running unit tests
 
-For end-to-end (e2e) testing, run:
+`ng test` executes the unit tests with the [Vitest](https://vitest.dev/) runner (via `make run-unit-tests`).
 
-```bash
-ng e2e
-```
+### Running end-to-end tests
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+`ng e2e` runs end-to-end tests. Angular CLI ships no e2e framework by default — choose one that suits
+your needs.
 
-## Additional Resources
+### Additional resources
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+For detailed command references, see the
+[Angular CLI Overview and Command Reference](https://angular.dev/tools/cli).

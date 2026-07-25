@@ -1,11 +1,10 @@
 .DEFAULT_GOAL := help
 MAKEFLAGS += --no-print-directory
 
-# Subprojects, in start-up order: the acceptance suite talks to a live backend.
-# Add `frontend` here once it has a Makefile speaking the same vocabulary.
-PROJECTS := backend acceptance-tests
+# Subprojects, in start-up order: the frontend and the acceptance suite both talk to a live backend.
+PROJECTS := backend frontend acceptance-tests
 
-.PHONY: help setup up down restart build ps logs lint fix-lint format fix-format lint-architecture lint-swagger generate-swagger run-unit-tests run-acceptance-tests run-guardrails fix-violations render-living-documentation open-living-documentation migrate reset FORCE
+.PHONY: help setup up down restart build ps lint fix-lint format fix-format lint-architecture lint-swagger generate-swagger run-unit-tests run-acceptance-tests run-guardrails fix-violations render-living-documentation open-living-documentation migrate reset FORCE
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-28s\033[0m %s\n", $$1, $$2}'
@@ -29,9 +28,6 @@ build: ## Rebuild every image
 
 ps: ## Show the status of every container, across all projects
 	@docker ps -a --filter name=nmk- --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
-
-logs: ## Tail the backend's logs (the acceptance-tests container idles and logs nothing)
-	@$(MAKE) -C backend logs
 
 lint: ## ESLint check across every project (read-only, no changes)
 	@for p in $(PROJECTS); do $(MAKE) -C $$p lint || exit $$?; done
@@ -57,11 +53,13 @@ generate-swagger: ## Regenerate the backend's OpenAPI spec
 migrate: ## Apply Prisma migrations against the running backend
 	@$(MAKE) -C backend npm db:migrate
 
-run-unit-tests: ## Run the backend's Jest unit tests (no running stack needed)
+run-unit-tests: ## Run the backend and frontend unit tests (no running stack needed)
 	@$(MAKE) -C backend run-unit-tests
+	@$(MAKE) -C frontend run-unit-tests
 
 run-acceptance-tests: ## Start the test environment if needed, then run the BDD acceptance suite
 	@$(MAKE) -C backend test-up
+	@$(MAKE) -C frontend up
 	@$(MAKE) -C acceptance-tests up
 	@$(MAKE) -C acceptance-tests run
 
@@ -77,8 +75,10 @@ run-guardrails: ## Run every check CI enforces, cheapest first
 	@$(MAKE) run-acceptance-tests
 
 # Recipe lines, not prerequisites, for the same reason as run-guardrails: order matters and
-# prerequisites may run in parallel under -j. ESLint embeds Prettier, so fix-lint converges on
-# its own and fix-format is a no-op re-check; the spec is generated last, from fixed source.
+# prerequisites may run in parallel under -j. In the backend and acceptance-tests ESLint embeds
+# Prettier, so fix-lint converges on its own there and fix-format only re-checks; the frontend
+# wires the two separately, so fix-format is what actually formats it and has to run after
+# fix-lint. The spec is generated last, from fixed source.
 fix-violations: ## Apply every fix the guardrails would otherwise demand
 	@$(MAKE) fix-lint
 	@$(MAKE) fix-format
@@ -92,12 +92,16 @@ open-living-documentation: ## Render the living documentation and open it in the
 
 reset: ## Stop everything and wipe the database volume
 	@$(MAKE) -C acceptance-tests down
+	@$(MAKE) -C frontend down
 	@$(MAKE) -C backend reset
 
 # Passthrough: `make backend/sh`, `make acceptance-tests/run`, `make backend/ps`, ...
 # FORCE keeps these from being mistaken for files, since e.g. acceptance-tests/target exists.
 backend/%: FORCE
 	@$(MAKE) -C backend $*
+
+frontend/%: FORCE
+	@$(MAKE) -C frontend $*
 
 acceptance-tests/%: FORCE
 	@$(MAKE) -C acceptance-tests $*

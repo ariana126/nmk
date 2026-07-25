@@ -9,8 +9,8 @@ A monorepo of independent projects, each with its own Makefile, Docker Compose s
 - **`backend/`** — NestJS + Prisma + Postgres API (DDD + CQRS). Two Compose projects, both `app` + `db`:
   `nmk-backend` (development, ports 3000/5432) and `nmk-backend-test` (`NODE_ENV=test`, ports 3001/5433).
   `make up` starts both; the test stack is what the acceptance suite drives.
+- **`frontend/`** — Angular app (Vitest + jsdom, ESLint, Prettier). Compose project `nmk-frontend` (`app`), dev server on port 4200. Its Vitest unit tests are wired into the root `run-unit-tests`.
 - **`acceptance-tests/`** — black-box BDD suite (Cucumber + Serenity/JS) driving the backend over HTTP. Compose project `nmk-acceptance-tests` (`app`).
-- **`frontend/`** — placeholder; only a `README.md`, which documents how to onboard it. No Makefile yet, so it is not in `PROJECTS`.
 
 **Read the subproject's own CLAUDE.md before working inside it.** This file covers only what is cross-cutting.
 
@@ -21,7 +21,7 @@ The root Makefile orchestrates the subprojects by delegating to their Makefiles.
 ```bash
 make up                     # cold start every project (backend first, waits until healthy)
 make migrate                # apply Prisma migrations to the dev stack (manual step, not part of `make up`)
-make run-unit-tests         # backend Jest unit tests (no running stack needed)
+make run-unit-tests         # backend Jest + frontend Vitest unit tests (no running stack needed)
 make run-acceptance-tests   # start the test environment, then run the acceptance suite
 make open-living-documentation  # render the living documentation and open it in the browser
 make run-guardrails         # run every check CI enforces, cheapest first
@@ -46,14 +46,22 @@ make fix-violations      # all three writing targets, in one go
 ```
 
 `make fix-violations` runs `fix-lint`, then `fix-format`, then `generate-swagger`. Order matters:
-ESLint runs Prettier as a rule and covers a superset of its files, so `fix-lint` converges on its
-own and `fix-format` is a cheap re-check; the spec is regenerated last, from already-fixed source.
+in the backend and acceptance-tests ESLint runs Prettier as a rule and covers a superset of its
+files, so `fix-lint` converges on its own there and `fix-format` is a cheap re-check. The frontend
+is the exception — its ESLint config has no Prettier integration, and `ng lint` only sees
+`src/**/*.ts` and `src/**/*.html` (`angular.json`'s `lintFilePatterns`), so `fix-format` is what
+actually formats it. The spec is regenerated last, from already-fixed source.
 
 Every one of these runs in a throwaway container and needs nothing up, not even the database — the swagger pair boots the app but never queries it. They stop at the first project that fails. `lint-architecture` and `lint-swagger` are backend-only — no other project has layer boundaries to enforce or an OpenAPI spec to keep in sync.
 
 Reach a single project's Makefile with `<project>/<target>`: `make backend/sh`, `make backend/logs`, `make acceptance-tests/render-living-documentation`.
 
 Use the slash form, not `make backend up` — Make would read `up` as a second root goal and start every stack a second time. For the same reason, targets taking an argument (`make npm <script>`) have no passthrough; run them from the subproject, or use the dedicated root target where one exists (`make migrate`).
+
+`make run-acceptance-tests` brings up the backend test stack, then the frontend, then the suite —
+the same order as `PROJECTS`. Today's suite is black-box HTTP against the backend and never touches
+the frontend, so that middle step is there to keep the environment whole as the suite grows to
+drive the UI. Dropping it would make the target cheaper and still green; keep it deliberately.
 
 `make up` does **not** migrate. The acceptance suite applies migrations itself (`POST /api/testing/migrations` in its `BeforeAll` hook), so `make run-acceptance-tests` is unaffected; run `make migrate` when driving the app by hand.
 
@@ -80,8 +88,8 @@ has no Docker layer cache.
 CI pass?". It runs them sequentially rather than in parallel, cheapest first, so it stops at the
 first failure. It is a convenience, not a gate: CI keeps its six parallel jobs, which finish
 sooner and name the broken check without reading a log. Because it ends in
-`run-acceptance-tests`, it leaves the backend test stack and the acceptance-tests container
-running; `make down` afterwards.
+`run-acceptance-tests`, it leaves the backend test stack, the frontend and the acceptance-tests
+container running; `make down` afterwards.
 
 `make fix-violations` is its writing counterpart — one command that applies every automated fix
 the checks would otherwise demand, so nothing avoidable reaches CI. No job calls it and none
