@@ -121,6 +121,32 @@ every CI job can create its own env and run with no secrets.
 | `JWT_SECRET` | Read via `ConfigService.getOrThrow` in `AuthModule`; boot fails without it. |
 | `LOG_LEVEL` | Overrides the pino level. The test stack sets `silent` to keep suite output readable. |
 
+## Editor / host node_modules
+
+The app needs no host `node_modules` — everything runs in Docker. But an editor needs one on disk
+for IntelliSense and type-checking, and it is **separate** from the container's: `docker-compose.yml`
+bind-mounts `./:/app` while an anonymous volume (`- /app/node_modules`) shadows it, so the container
+keeps the `node_modules` its image built via `npm ci` and never sees the host copy. The host copy
+changes only when you install locally.
+
+After the container's dependencies or the Prisma schema change, sync the host with **`npm ci`**
+(needs Node 22 locally), then restart the editor's TS/language server:
+
+```bash
+npm ci   # installs exactly from package-lock.json and runs postinstall (prisma generate)
+```
+
+**Never `npm install` for this sync.** `npm ci` installs strictly from `package-lock.json` and never
+rewrites it; `npm install` rewrites the lockfile as a side effect, and because a host npm version can
+differ from the container's, that churns `package-lock.json` (e.g. `"peer": true` metadata) for no
+real change. The committed lockfile is the shared source of truth and the container's npm owns it (CI
+installs via `npm ci`). Make **real** dependency changes inside the container (`make sh` → `npm
+install`) and commit them, so `npm ci` everywhere stays consistent.
+
+This is host-only, for the editor. The container side of the same split — refreshing a stale
+in-container `node_modules`/Prisma client after a schema change — is a rebuild with
+`--renew-anon-volumes`, unrelated to this.
+
 ## Architecture
 
 This project implements **DDD + CQRS** with a strict layered structure. New features follow the same vertical-slice pattern as the `identity` module.
