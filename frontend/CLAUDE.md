@@ -4,6 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Skills.** Invoke the ones that fit before writing code:
 
+- `angular-developer` — the Angular team's own guidance, vendored into `.claude/skills/` (pinned in
+  `skills-lock.json`, from `angular/skills` on GitHub) and scoped to this directory. Its `SKILL.md`
+  is an index: it routes to a `references/*.md` page per topic — signals, `linkedSignal`, `resource`,
+  effects, signal/reactive/template-driven forms, DI and injection context, routing and guards,
+  pipes, Angular Aria, component styling and Tailwind, testing and harnesses, CLI and migrations.
+  Read the reference for the topic at hand rather than working from memory; Angular's API surface
+  moves fast and this is version-current. The "Angular & TypeScript best practices" section below
+  is the short form of the same advice — the skill is where the detail lives.
+- `angular-new-app` — scaffolding a _new_ Angular app from scratch. Not applicable here: this app
+  already exists. Its `ng generate` recipes still apply, but see the caveat below.
 - `handbook:oop-guideline` — components, services and signals-as-state: what belongs where,
   immutability, dependency injection.
 - `handbook:test-guideline` — what to test in a component, what to fake, black-box thinking for the
@@ -13,6 +23,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   markup.
 - `run` and `claude-in-chrome` — to actually look at the rendered page. `frontend-design` ends in a
   critique pass that can't be done by reading templates.
+
+Both Angular skills assume a host toolchain and tell you to run `ng` directly. Here there is none —
+`ng` lives in the container's `node_modules` (an anonymous volume; the repo is bind-mounted at
+`/app`, so generated files do land on the host). Translate every `ng <cmd>` the skill gives you into
+`docker compose run --rm app npx ng <cmd>`, or the Make target where one exists. In particular the
+skill's "run `ng build` when you're done" step is
+`docker compose run --rm app npm run build` — note `make build` is Docker's, it rebuilds the image.
 
 ## Monorepo integration
 
