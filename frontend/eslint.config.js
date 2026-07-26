@@ -6,6 +6,11 @@ const angular = require('angular-eslint');
 
 module.exports = defineConfig([
   {
+    // The orval-generated API client. `ng lint` sees src/**/*.ts (angular.json's
+    // lintFilePatterns), and there is nothing to fix in code no one hand-edits.
+    ignores: ['src/app/api/**'],
+  },
+  {
     files: ['**/*.ts'],
     extends: [
       eslint.configs.recommended,

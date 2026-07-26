@@ -42,10 +42,13 @@ make fix-format          # Prettier auto-format across every project
 make lint-architecture   # check the backend's DDD + CQRS layer boundaries
 make lint-swagger        # check the backend's committed OpenAPI spec matches the code
 make generate-swagger    # regenerate the backend's OpenAPI spec
-make fix-violations      # all three writing targets, in one go
+make lint-api-contract   # check the frontend's copy of that spec matches the backend's
+make sync-api-contract   # copy the backend's OpenAPI spec into the frontend
+make fix-violations      # all four writing targets, in one go
 ```
 
-`make fix-violations` runs `fix-lint`, then `fix-format`, then `generate-swagger`. Order matters:
+`make fix-violations` runs `fix-lint`, then `fix-format`, then `generate-swagger`, then
+`sync-api-contract`. Order matters:
 in the backend and acceptance-tests ESLint runs Prettier as a rule and covers a superset of its
 files, so `fix-lint` converges on its own there and `fix-format` is a cheap re-check. The frontend
 is the exception — its ESLint config has no Prettier integration, and `ng lint` only sees
@@ -73,20 +76,21 @@ exists rather than the suite reusing the dev one. See `backend/CLAUDE.md`.
 ## Continuous integration
 
 `.github/workflows/ci.yml` gates every pull request, and also runs on each push to `main` and on
-`workflow_dispatch`. Six jobs run in parallel, one per check:
-`make format`, `make lint`, `make lint-architecture`, `make lint-swagger`, `make run-unit-tests`,
-`make run-acceptance-tests`. Each job is a checkout plus a single root target — no npm, no Node
-setup, no secrets, because every target already builds its own container and creates its `.env`
-from the committed `.env.example`.
+`workflow_dispatch`. Seven jobs run in parallel, one per check:
+`make format`, `make lint`, `make lint-architecture`, `make lint-swagger`, `make lint-api-contract`,
+`make run-unit-tests`, `make run-acceptance-tests`. Each job is a checkout plus a single root target
+— no npm, no Node setup, no secrets, because every target already builds its own container and
+creates its `.env` from the committed `.env.example`. `lint-api-contract` is the one exception that
+needs no container at all: it is a `cmp` between two files in the checkout.
 
 **A new gate means a new root target, a job that calls it, and a line in `run-guardrails`.**
 Never inline a command into the workflow: the Makefile stays the single source of truth, so what
 CI enforces is exactly what runs locally. Each job cold-builds its image, since a fresh runner
 has no Docker layer cache.
 
-`make run-guardrails` is the local mirror of these six jobs — the one command that answers "will
+`make run-guardrails` is the local mirror of these seven jobs — the one command that answers "will
 CI pass?". It runs them sequentially rather than in parallel, cheapest first, so it stops at the
-first failure. It is a convenience, not a gate: CI keeps its six parallel jobs, which finish
+first failure. It is a convenience, not a gate: CI keeps its seven parallel jobs, which finish
 sooner and name the broken check without reading a log. Because it ends in
 `run-acceptance-tests`, it leaves the backend test stack, the frontend and the acceptance-tests
 container running; `make down` afterwards.
@@ -112,3 +116,15 @@ root target, no `run-guardrails` line. Enabling it once requires setting Pages' 
 `acceptance-tests` drives `backend` over HTTP and knows nothing else about it — no importing backend code, no direct database access.
 
 **Backend code and docs must never reference the acceptance-tests project.** The root is the only place both are named. When adding a project to the root Makefile's `PROJECTS`, keep start-up order: anything that talks to the backend comes after it.
+
+`frontend` depends on the backend's *contract*, not on the backend project. It generates its HTTP
+client with orval from **its own copy** of the spec, `frontend/api/openapi.json`, so nothing under
+`frontend/` ever resolves a path into `backend/` and the project still builds if you copy it
+elsewhere. The copy is maintained here and only here — `make sync-api-contract` writes it,
+`make lint-api-contract` fails when it drifts. The generated client itself is gitignored and rebuilt
+by npm `pre*` hooks on every start, build, test and lint; see `frontend/CLAUDE.md`.
+
+The two spec checks compose: `lint-swagger` proves `backend/docs/openapi.json` matches the backend
+code, so `lint-api-contract` only has to prove the frontend's copy matches that file. Together they
+guarantee the generated client matches the running API. That is also why `fix-violations` runs
+`sync-api-contract` last — the copy is taken from an already-regenerated spec.

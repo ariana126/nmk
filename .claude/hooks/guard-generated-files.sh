@@ -20,10 +20,24 @@ rel="${path#"$root"/}"
 case "$rel" in
   backend/docs/openapi.json|backend/docs/openapi.yaml)
     remedy='generated from the code by backend/src/generate-swagger.ts. Run `make generate-swagger` — editing it by hand only makes the `make lint-swagger` CI job fail against the real source.' ;;
+  frontend/api/openapi.json)
+    remedy='a copy of the backend contract, from which the frontend generates its API client. Run `make sync-api-contract` — editing it by hand only makes the `make lint-api-contract` CI job fail.' ;;
+  frontend/src/app/api/*)
+    remedy='the orval-generated API client, rewritten from frontend/api/openapi.json before every start, build, test and lint. An edit here survives until the next one of those and then vanishes. Change the contract (`make sync-api-contract`) or the generator (frontend/orval.config.ts) instead.' ;;
+  frontend/.claude/skills/*)
+    remedy='vendored from the angular/skills repository on GitHub and pinned by content hash in frontend/skills-lock.json. It reads like hand-written documentation but is not ours to edit — any change silently desyncs it from its pin, which is also why it sits in frontend/.prettierignore. Re-vendor from upstream instead, and put project-specific guidance in frontend/CLAUDE.md.' ;;
+  frontend/skills-lock.json)
+    remedy='the content-hash pin for the skills vendored into frontend/.claude/skills, written by the installer that fetches them. Editing the hash without changing the files (or the reverse) only makes the pin lie. Re-vendor from upstream instead.' ;;
   backend/prisma/migrations/*/migration.sql)
     remedy='an applied migration. Editing it desyncs the file from the database with no error anywhere. Create a new migration instead: `make backend/sh`, then `npm run db:migration:create`.' ;;
-  backend/dist/*|backend/coverage/*|backend/reports/*)
-    remedy='backend build output. Rebuild with `make backend/build` (or `make run-unit-tests` for coverage) rather than editing it.' ;;
+  backend/prisma/migrations/migration_lock.toml)
+    remedy='written by Prisma to record which database provider the migrations were generated for. It changes only when the datasource does — never by hand.' ;;
+  backend/dist/*|backend/build/*)
+    remedy='backend build output, written by `nest build` in the container: `make backend/sh`, then `npm run build`. Note `make backend/build` will not do it — that is Docker'"'"'s build, it rebuilds the image.' ;;
+  backend/coverage/*|backend/reports/*|frontend/coverage/*)
+    remedy='test output, rewritten by `make run-unit-tests`. Fix the tests or the code it measures rather than editing the report.' ;;
+  frontend/dist/*)
+    remedy='frontend build output. Rebuild it with `docker compose run --rm app npm run build` from frontend/ — note `make frontend/build` is Docker'"'"'s, it rebuilds the image.' ;;
   acceptance-tests/target/*)
     remedy='Serenity output, rewritten by `make run-acceptance-tests` and `make render-living-documentation`. It accumulates across runs — `rm -rf acceptance-tests/target/` to start clean.' ;;
   */node_modules/*|node_modules/*)

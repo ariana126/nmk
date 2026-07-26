@@ -1,0 +1,9 @@
+# Files that must stay byte-identical to a source outside this repo, so reformatting them
+# would break the very check that keeps them honest.
+
+# Vendored Angular skills, pinned by content hash in skills-lock.json.
+.claude/skills/
+
+# A copy of the backend's OpenAPI spec, compared byte-for-byte by `make lint-api-contract`.
+# Reformat it and the gate fails; run `make sync-api-contract` to refresh it instead.
+api/openapi.json

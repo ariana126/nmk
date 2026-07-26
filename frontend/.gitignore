@@ -6,6 +6,10 @@
 /out-tsc
 /bazel-out
 
+# The API client, generated from api/openapi.json by `npm run generate:api` (which npm's
+# pre* hooks run before every start, build, test and lint). The contract is what's committed.
+/src/app/api
+
 # Node
 /node_modules
 npm-debug.log

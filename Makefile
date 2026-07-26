@@ -4,7 +4,7 @@ MAKEFLAGS += --no-print-directory
 # Subprojects, in start-up order: the frontend and the acceptance suite both talk to a live backend.
 PROJECTS := backend frontend acceptance-tests
 
-.PHONY: help setup up down restart build ps lint fix-lint format fix-format lint-architecture lint-swagger generate-swagger run-unit-tests run-acceptance-tests run-guardrails fix-violations render-living-documentation open-living-documentation migrate reset FORCE
+.PHONY: help setup up down restart build ps lint fix-lint format fix-format lint-architecture lint-swagger generate-swagger lint-api-contract sync-api-contract run-unit-tests run-acceptance-tests run-guardrails fix-violations render-living-documentation open-living-documentation migrate reset FORCE
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-28s\033[0m %s\n", $$1, $$2}'
@@ -50,6 +50,18 @@ lint-swagger: ## Check the backend's committed OpenAPI spec matches the code
 generate-swagger: ## Regenerate the backend's OpenAPI spec
 	@$(MAKE) -C backend generate-swagger
 
+# The frontend generates its API client from its own copy of the spec, so that it stays a
+# standalone project — nothing under frontend/ ever reaches into backend/. That copy is what
+# these two targets maintain, and this is the only file in the repo allowed to name both
+# projects. lint-swagger already proves backend/docs/openapi.json matches the backend code, so
+# this only has to prove the copy matches that file: a plain cmp, no container, no Node.
+lint-api-contract: ## Check the frontend's copy of the OpenAPI spec matches the backend's
+	@cmp -s backend/docs/openapi.json frontend/api/openapi.json \
+	  || { echo "frontend/api/openapi.json is stale — run 'make sync-api-contract'"; exit 1; }
+
+sync-api-contract: ## Copy the backend's OpenAPI spec into the frontend
+	@cp backend/docs/openapi.json frontend/api/openapi.json
+
 migrate: ## Apply Prisma migrations against the running backend
 	@$(MAKE) -C backend npm db:migrate
 
@@ -67,6 +79,7 @@ run-acceptance-tests: ## Start the test environment if needed, then run the BDD 
 # under -j, and the cheapest-first ordering is the whole point. Make already stops at the
 # first failing line, so no `|| exit $$?` is needed.
 run-guardrails: ## Run every check CI enforces, cheapest first
+	@$(MAKE) lint-api-contract
 	@$(MAKE) format
 	@$(MAKE) lint
 	@$(MAKE) lint-architecture
@@ -78,11 +91,13 @@ run-guardrails: ## Run every check CI enforces, cheapest first
 # prerequisites may run in parallel under -j. In the backend and acceptance-tests ESLint embeds
 # Prettier, so fix-lint converges on its own there and fix-format only re-checks; the frontend
 # wires the two separately, so fix-format is what actually formats it and has to run after
-# fix-lint. The spec is generated last, from fixed source.
+# fix-lint. The spec is generated last, from fixed source, and the frontend's copy is taken
+# from that freshly generated spec.
 fix-violations: ## Apply every fix the guardrails would otherwise demand
 	@$(MAKE) fix-lint
 	@$(MAKE) fix-format
 	@$(MAKE) generate-swagger
+	@$(MAKE) sync-api-contract
 
 render-living-documentation: ## Render the living documentation from the last acceptance run
 	@$(MAKE) -C acceptance-tests render-living-documentation
