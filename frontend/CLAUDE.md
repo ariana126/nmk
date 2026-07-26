@@ -71,16 +71,20 @@ speaks the monorepo's shared vocabulary, so the root Makefile's fan-out targets 
 - `make run-unit-tests` — Vitest (jsdom), runs once and exits. Wired into the root `run-unit-tests`, so CI gates it.
   `ng test` watches by default, which would hang the target and CI, so `npm test` pins `--watch=false`; watching is
   the separate `npm run test:watch`, mirroring the backend's `test` / `test:watch` split. Keep that flag.
+- `make lint-accessibility` — the axe-core audit, in a real browser. The one target here that needs
+  the app running; see [Accessibility](#accessibility) below.
 - `make sh`, `make logs`, `make npm <script>` — shell, logs, and any package.json script in the container.
 
-Each check runs in a throwaway container (`docker compose run --rm app npm run <script>`) needing
-nothing else up — no Node install, no browser (Vitest uses jsdom). That is what lets CI run every gate
-with no setup and no secrets. Make targets are verb-object hyphenated (`fix-format`); the wrapped
-package.json scripts keep the colon (`format:fix`).
+Every check but `lint-accessibility` runs in a throwaway container
+(`docker compose run --rm app npm run <script>`) needing nothing else up — no Node install, no browser
+(Vitest uses jsdom). That is what lets CI run those gates with no setup and no secrets. Make targets
+are verb-object hyphenated (`fix-format`); the wrapped package.json scripts keep the colon
+(`format:fix`).
 
 The frontend rides the root's existing `lint`/`format`/`run-unit-tests` fan-out, so CI covers it with
 no workflow change. A _new kind_ of check would also need a root target, a CI job, and a
-`run-guardrails` line — see `../CLAUDE.md`.
+`run-guardrails` line — see `../CLAUDE.md`. `lint-accessibility` is the worked example of that: a
+frontend-only gate with all four pieces.
 
 ## The API client is generated — never hand-write it
 
@@ -153,6 +157,104 @@ one every time and so never shows the problem. Rebuild once with
 described for the backend's Prisma client, and it bites after any dependency change; a fresh clone
 and CI are unaffected.
 
+## Accessibility
+
+Two requirements, and they are gated, not aspirational:
+
+- **It MUST pass all AXE checks.**
+- **It MUST follow all WCAG AA minimums, including focus management, color contrast, and ARIA
+  attributes.**
+
+Three layers enforce as much of that as a machine can, and the third one is you.
+
+### `make lint-accessibility` — axe-core in a real browser
+
+`a11y/accessibility.spec.ts` loads every route in a headless Chromium and runs axe over the rendered
+page, failing on any violation tagged `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa` or `wcag22aa`.
+`best-practice`, AAA and `experimental` rules are deliberately excluded — see the comment on
+`wcagAaTags` for why.
+
+**Add your route to `auditedRoutes` when you add a page.** A page missing from that list is a page
+nothing checks; it is the one manual step the gate depends on.
+
+It runs in a browser rather than in the Vitest suite for one reason: jsdom has no layout and no CSS
+cascade, so axe's `color-contrast` rule can only ever return _incomplete_ there. Contrast is half the
+requirement, so the audit has to see real pixels. Don't try to move it into a unit test.
+
+| Path                         |                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------- |
+| `a11y/accessibility.spec.ts` | the audit and its route list                                                    |
+| `playwright.config.ts`       | runner config; `baseURL` comes from `A11Y_BASE_URL`, set by Compose             |
+| `Dockerfile.a11y`            | the audit's image — the dev server's Node base plus Chromium                    |
+| `tsconfig.a11y.json`         | so the editor and `tsc` see these files; the root tsconfig is references-only   |
+| `a11y/report/`               | **generated**, gitignored; CI uploads it as the `accessibility-report` artifact |
+
+`a11y/` sits beside `src/`, not inside it — same reasoning as `api/`: it is tooling, not something
+Angular compiles or serves. That also keeps it clear of the unit-test builder's spec discovery, so
+Vitest and Playwright never fight over a `.spec.ts`. Like the generated client, `a11y/report` is
+written by a container running as root and so is root-owned on the host — deleting it needs `sudo`,
+or `docker compose run --rm app rm -rf a11y/report`.
+
+Unlike every other target here it needs the app up, so `make lint-accessibility` starts the dev
+server itself and waits for its healthcheck. It leaves it running, exactly as
+`make run-acceptance-tests` does — `make down` when you are finished.
+
+The audit reaches it on **`http://localhost:4200`**, because the `a11y` service joins the dev
+server's own network namespace (`network_mode: service:app`). Don't "simplify" that to the service
+name: `http://app:4200` fails twice over. Chromium force-upgrades it to HTTPS — `.app` is an
+HSTS-preloaded TLD and the service is named `app` — and reports the mismatch as a thoroughly
+misleading `net::ERR_SSL_PROTOCOL_ERROR`. Behind that, Vite's DNS-rebinding defence 403s any `Host`
+it doesn't recognise, which would need an `allowedHosts` entry in `angular.json`. localhost is
+exempt from both, so neither workaround is needed.
+
+The audit gets its own image so that only this one gate carries a browser; `lint`, `format` and
+`run-unit-tests` keep cold-building the plain `node:22-bookworm-slim` one, which matters because
+every CI job builds from scratch. The `a11y` service sits behind a Compose profile, so `make up`
+ignores it.
+
+That image is **not** `mcr.microsoft.com/playwright`. It is the same Node base as the dev server
+plus `npx playwright install --with-deps chromium` — one browser instead of the three that image
+ships, and no image tag to keep in step with `package.json`, because `playwright install` fetches
+whatever the installed `@playwright/test` pins. Upgrading Playwright is therefore an ordinary
+dependency bump. Don't reintroduce the coupling by switching to a prebuilt browser image.
+
+If the audit ever needs a second engine, add it to that `playwright install` line and to
+`playwright.config.ts`'s `projects` — but note that axe grades markup and computed style, so a
+second engine mostly re-proves the first. Chromium alone is the deliberate default.
+
+> **If the image build dies with `403 … this service is not available in your location`,**
+> Playwright's CDN is geo-blocked where you are. Uncomment `PLAYWRIGHT_DOWNLOAD_HOST` in `.env`
+> (see `.env.example`) to fetch the same file from a mirror — only the host changes. The default
+> stays the official CDN because that is right for CI and for most contributors, and because a
+> mirror is a third party in the supply chain; the override is opt-in and local, which is why it
+> lives in `.env` rather than in the committed Dockerfile.
+
+### `make lint` — the static layer
+
+`eslint.config.js` extends `angular.configs.templateAccessibility` (ARIA validity, labels,
+alternative text, `interactive-supports-focus`, …) and adds `no-positive-tabindex` and
+`button-has-type`. This catches in the editor what the audit would otherwise catch minutes later in
+a container.
+
+### The part no tool checks
+
+Automated rules detect roughly a third of WCAG failures, and **focus management is mostly in the
+other two thirds** — axe can see a bad `tabindex`, but not that focus went nowhere. Work through this
+by hand during the `frontend-design` critique pass and the `claude-in-chrome` review that skill ends
+in, for any UI with state:
+
+- Opening a dialog, menu or drawer moves focus into it; closing it returns focus to the trigger.
+- While a modal is open, Tab is trapped inside it and Escape closes it.
+- Focus is visible on every interactive element — never `outline: none` without a replacement
+  `:focus-visible` style that meets 3:1 against its surroundings.
+- Tab order follows reading order, which means DOM order: no CSS reordering that leaves the
+  keyboard walking the page sideways.
+- A skip link precedes repeated navigation.
+- Anything asynchronous that changes the page announces itself (a live region), and errors move
+  focus to the first invalid field.
+
+A green `make lint-accessibility` means no _detectable_ violation. It is a floor, not a pass mark.
+
 ## Editor / host node_modules
 
 The app needs no host `node_modules` — everything runs in Docker. But an editor needs one on disk
@@ -175,8 +277,13 @@ source of truth and the container's npm owns it (CI installs via `npm ci`). Make
 changes inside the container (`make sh` → `npm install`) and commit them — which is exactly how
 orval was added — so `npm ci` everywhere stays consistent.
 
-Two frontend-specific wrinkles:
+Three frontend-specific wrinkles:
 
+- **Sync with `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci`.** Installing `@playwright/test` otherwise
+  pulls every browser it pins — hundreds of megabytes the host never uses, since the audit only ever
+  runs in `Dockerfile.a11y`'s image. The editor needs Playwright's types, never its browsers. Both
+  Dockerfiles set the same variable for the same reason; only the a11y one then installs Chromium
+  back, deliberately and alone.
 - **orval declares `engines.node >= 22.18`.** A host on an older 22.x still installs it — npm only
   warns — and the editor only needs orval's types for `orval.config.ts`, which resolve regardless.
   The generator itself always runs in the container, which is on 22.23, so this never bites in
@@ -212,6 +319,9 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 
 - It MUST pass all AXE checks.
 - It MUST follow all WCAG AA minimums, including focus management, color contrast, and ARIA attributes.
+
+Both are gated — `make lint-accessibility` and `make lint`. See [Accessibility](#accessibility) for
+what each layer covers, what neither can, and the route list you have to keep current.
 
 ### Components
 

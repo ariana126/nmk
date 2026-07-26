@@ -44,6 +44,7 @@ make lint-swagger        # check the backend's committed OpenAPI spec matches th
 make generate-swagger    # regenerate the backend's OpenAPI spec
 make lint-api-contract   # check the frontend's copy of that spec matches the backend's
 make sync-api-contract   # copy the backend's OpenAPI spec into the frontend
+make lint-accessibility  # check the frontend passes axe's WCAG A/AA rules on every route
 make fix-violations      # all four writing targets, in one go
 ```
 
@@ -56,6 +57,12 @@ is the exception — its ESLint config has no Prettier integration, and `ng lint
 actually formats it. The spec is regenerated last, from already-fixed source.
 
 Every one of these runs in a throwaway container and needs nothing up, not even the database — the swagger pair boots the app but never queries it. They stop at the first project that fails. `lint-architecture` and `lint-swagger` are backend-only — no other project has layer boundaries to enforce or an OpenAPI spec to keep in sync.
+
+`lint-accessibility` is the exception on both counts: frontend-only, since no other project renders a
+page, and the one check that needs its subject **running**. It starts the frontend itself and drives
+a headless Chromium at it, because axe grades rendered output — in jsdom, colour contrast is not
+merely unchecked but uncheckable. It leaves the dev server up; `make down` afterwards. See
+`frontend/CLAUDE.md`.
 
 Reach a single project's Makefile with `<project>/<target>`: `make backend/sh`, `make backend/logs`, `make acceptance-tests/render-living-documentation`.
 
@@ -76,9 +83,9 @@ exists rather than the suite reusing the dev one. See `backend/CLAUDE.md`.
 ## Continuous integration
 
 `.github/workflows/ci.yml` gates every pull request, and also runs on each push to `main` and on
-`workflow_dispatch`. Seven jobs run in parallel, one per check:
+`workflow_dispatch`. Eight jobs run in parallel, one per check:
 `make format`, `make lint`, `make lint-architecture`, `make lint-swagger`, `make lint-api-contract`,
-`make run-unit-tests`, `make run-acceptance-tests`. Each job is a checkout plus a single root target
+`make lint-accessibility`, `make run-unit-tests`, `make run-acceptance-tests`. Each job is a checkout plus a single root target
 — no npm, no Node setup, no secrets, because every target already builds its own container and
 creates its `.env` from the committed `.env.example`. `lint-api-contract` is the one exception that
 needs no container at all: it is a `cmp` between two files in the checkout.
@@ -88,9 +95,9 @@ Never inline a command into the workflow: the Makefile stays the single source o
 CI enforces is exactly what runs locally. Each job cold-builds its image, since a fresh runner
 has no Docker layer cache.
 
-`make run-guardrails` is the local mirror of these seven jobs — the one command that answers "will
+`make run-guardrails` is the local mirror of these eight jobs — the one command that answers "will
 CI pass?". It runs them sequentially rather than in parallel, cheapest first, so it stops at the
-first failure. It is a convenience, not a gate: CI keeps its seven parallel jobs, which finish
+first failure. It is a convenience, not a gate: CI keeps its eight parallel jobs, which finish
 sooner and name the broken check without reading a log. Because it ends in
 `run-acceptance-tests`, it leaves the backend test stack, the frontend and the acceptance-tests
 container running; `make down` afterwards.
@@ -98,6 +105,9 @@ container running; `make down` afterwards.
 `make fix-violations` is its writing counterpart — one command that applies every automated fix
 the checks would otherwise demand, so nothing avoidable reaches CI. No job calls it and none
 should: CI only ever runs the read-only checks.
+
+The accessibility job uploads `frontend/a11y/report` as the `accessibility-report` artifact, pass or
+fail: axe's own report shows the offending element, where the job log only names it.
 
 The acceptance-tests job also renders the living documentation
 (`make render-living-documentation`) and uploads `acceptance-tests/target/site/serenity` as the

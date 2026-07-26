@@ -13,7 +13,10 @@
     --electric-violet: oklch(53.18% 0.28 296.97);
     --french-violet: oklch(47.66% 0.246 305.88);
     --vivid-pink: oklch(69.02% 0.277 332.77);
-    --hot-red: oklch(61.42% 0.238 15.34);
+    /* Darkened from Angular's stock 61.42%: as shipped, .pill text sat at 3.88:1 against its
+       own 5%-tint background, below the 4.5:1 WCAG AA minimum for 14px text. Now 4.79:1.
+       `make lint-accessibility` is what caught it and what keeps it honest. */
+    --hot-red: oklch(56% 0.238 15.34);
     --orange-red: oklch(63.32% 0.24 31.68);
 
     --gray-900: oklch(19.37% 0.006 300.98);

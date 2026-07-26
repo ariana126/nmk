@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down restart build logs ps sh run-unit-tests npm lint fix-lint format fix-format
+.PHONY: help setup up down restart build logs ps sh run-unit-tests npm lint fix-lint format fix-format lint-accessibility
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-28s\033[0m %s\n", $$1, $$2}'
@@ -45,6 +45,15 @@ format: setup ## Prettier check (read-only, no changes)
 
 fix-format: setup ## Prettier auto-format
 	docker compose run --rm app npm run format:fix
+
+# The only check here that needs the app actually running: axe grades a rendered page, which
+# is the whole point — jsdom has no layout and no cascade, so it can never decide colour
+# contrast. Two recipe lines rather than a `up` prerequisite, so the server is always healthy
+# before the audit starts (-j is free to run prerequisites in parallel). The server is left
+# running afterwards, like `make run-acceptance-tests` does; `make down` when you are finished.
+lint-accessibility: setup ## axe-core accessibility audit against the running app (read-only)
+	docker compose up --build -d --wait app
+	docker compose run --rm --build a11y npm run lint:accessibility
 
 %:
 	@:

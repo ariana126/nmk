@@ -1,0 +1,12 @@
+/* The accessibility audit: Playwright tests and their config, which run in Node rather than
+   in the browser or under Angular. A sibling of tsconfig.app.json and tsconfig.spec.json so
+   that the editor and the compiler see these files at all — the root tsconfig lists `files: []`
+   and delegates everything to its references. */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/a11y",
+    "types": ["node"]
+  },
+  "include": ["a11y/**/*.ts", "playwright.config.ts"]
+}

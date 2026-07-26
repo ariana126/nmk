@@ -36,6 +36,8 @@ case "$rel" in
     remedy='backend build output, written by `nest build` in the container: `make backend/sh`, then `npm run build`. Note `make backend/build` will not do it — that is Docker'"'"'s build, it rebuilds the image.' ;;
   backend/coverage/*|backend/reports/*|frontend/coverage/*)
     remedy='test output, rewritten by `make run-unit-tests`. Fix the tests or the code it measures rather than editing the report.' ;;
+  frontend/a11y/report/*|frontend/a11y/.output/*)
+    remedy='the accessibility audit'"'"'s output, rewritten by `make lint-accessibility`. Fix the page it grades — the audit itself is frontend/a11y/accessibility.spec.ts.' ;;
   frontend/dist/*)
     remedy='frontend build output. Rebuild it with `docker compose run --rm app npm run build` from frontend/ — note `make frontend/build` is Docker'"'"'s, it rebuilds the image.' ;;
   acceptance-tests/target/*)

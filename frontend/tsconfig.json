@@ -28,6 +28,9 @@
     },
     {
       "path": "./tsconfig.spec.json"
+    },
+    {
+      "path": "./tsconfig.a11y.json"
     }
   ]
 }

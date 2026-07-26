@@ -23,3 +23,34 @@ services:
       timeout: 5s
       retries: 5
       start_period: 40s
+
+  # The accessibility audit — axe-core in a real Chromium, driven by Playwright against the
+  # dev server. A profile keeps it out of `make up`: it is a one-shot check, not part of the
+  # stack. `docker compose run` enables a target service's own profile, so `make
+  # lint-accessibility` still reaches it.
+  a11y:
+    build:
+      context: .
+      dockerfile: Dockerfile.a11y
+      args:
+        # Empty unless .env sets it; see the comment on the matching ARG in Dockerfile.a11y.
+        PLAYWRIGHT_DOWNLOAD_HOST: ${PLAYWRIGHT_DOWNLOAD_HOST:-}
+    profiles:
+      - a11y
+    init: true
+    depends_on:
+      app:
+        condition: service_healthy
+    # Share the dev server's network namespace so the browser reaches it on localhost. Going
+    # through the service name instead would break twice over: Chromium force-upgrades
+    # http://app/ to HTTPS, because `.app` is an HSTS-preloaded TLD and this service is named
+    # `app` (the symptom is a mystifying ERR_SSL_PROTOCOL_ERROR), and Vite's DNS-rebinding
+    # defence 403s any Host it does not recognise. localhost is exempt from both, so the audit
+    # needs no `allowedHosts` entry and no second name for the server.
+    network_mode: service:app
+    environment:
+      # The internal port — never ${APP_PORT}, which is only the host's side of the mapping.
+      A11Y_BASE_URL: http://localhost:4200
+    volumes:
+      - ./:/app
+      - /app/node_modules

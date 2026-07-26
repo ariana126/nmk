@@ -6,6 +6,11 @@
 /out-tsc
 /bazel-out
 
+# The accessibility audit's output: the axe HTML report (CI uploads it as an artifact) and
+# Playwright's per-test artifacts. Both are rewritten by `make lint-accessibility`.
+/a11y/report
+/a11y/.output
+
 # The API client, generated from api/openapi.json by `npm run generate:api` (which npm's
 # pre* hooks run before every start, build, test and lint). The contract is what's committed.
 /src/app/api

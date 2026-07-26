@@ -4,7 +4,7 @@ MAKEFLAGS += --no-print-directory
 # Subprojects, in start-up order: the frontend and the acceptance suite both talk to a live backend.
 PROJECTS := backend frontend acceptance-tests
 
-.PHONY: help setup up down restart build ps lint fix-lint format fix-format lint-architecture lint-swagger generate-swagger lint-api-contract sync-api-contract run-unit-tests run-acceptance-tests run-guardrails fix-violations render-living-documentation open-living-documentation migrate reset FORCE
+.PHONY: help setup up down restart build ps lint fix-lint format fix-format lint-architecture lint-swagger generate-swagger lint-api-contract sync-api-contract lint-accessibility run-unit-tests run-acceptance-tests run-guardrails fix-violations render-living-documentation open-living-documentation migrate reset FORCE
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-28s\033[0m %s\n", $$1, $$2}'
@@ -62,6 +62,12 @@ lint-api-contract: ## Check the frontend's copy of the OpenAPI spec matches the 
 sync-api-contract: ## Copy the backend's OpenAPI spec into the frontend
 	@cp backend/docs/openapi.json frontend/api/openapi.json
 
+# Frontend-only, like lint-architecture and lint-swagger are backend-only: no other project
+# renders a page. Unlike every other check here it needs the app up, because axe grades the
+# rendered DOM — that is what makes colour contrast checkable at all.
+lint-accessibility: ## Check the frontend passes axe's WCAG A/AA rules on every route
+	@$(MAKE) -C frontend lint-accessibility
+
 migrate: ## Apply Prisma migrations against the running backend
 	@$(MAKE) -C backend npm db:migrate
 
@@ -85,6 +91,7 @@ run-guardrails: ## Run every check CI enforces, cheapest first
 	@$(MAKE) lint-architecture
 	@$(MAKE) lint-swagger
 	@$(MAKE) run-unit-tests
+	@$(MAKE) lint-accessibility
 	@$(MAKE) run-acceptance-tests
 
 # Recipe lines, not prerequisites, for the same reason as run-guardrails: order matters and

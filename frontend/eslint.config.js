@@ -41,6 +41,15 @@ module.exports = defineConfig([
   {
     files: ['**/*.html'],
     extends: [angular.configs.templateRecommended, angular.configs.templateAccessibility],
-    rules: {},
+    rules: {
+      // templateAccessibility covers ARIA validity, labels and alternative text, but not
+      // these two. They are the statically checkable slice of focus management: a positive
+      // tabindex pulls an element out of DOM order and wrecks the tab sequence, and a button
+      // with no type silently submits the form around it. The rest of focus management —
+      // focus moved and returned, trapped in a modal, visibly indicated — is a review item;
+      // see the accessibility section of CLAUDE.md.
+      '@angular-eslint/template/no-positive-tabindex': 'error',
+      '@angular-eslint/template/button-has-type': 'error',
+    },
   },
 ]);
