@@ -69,6 +69,8 @@ speaks the monorepo's shared vocabulary, so the root Makefile's fan-out targets 
 - `make lint` / `make fix-lint` — ESLint (`ng lint`); the bare target is read-only, `fix-` writes.
 - `make format` / `make fix-format` — Prettier; same read-only/writing split.
 - `make run-unit-tests` — Vitest (jsdom), runs once and exits. Wired into the root `run-unit-tests`, so CI gates it.
+  `ng test` watches by default, which would hang the target and CI, so `npm test` pins `--watch=false`; watching is
+  the separate `npm run test:watch`, mirroring the backend's `test` / `test:watch` split. Keep that flag.
 - `make sh`, `make logs`, `make npm <script>` — shell, logs, and any package.json script in the container.
 
 Each check runs in a throwaway container (`docker compose run --rm app npm run <script>`) needing
