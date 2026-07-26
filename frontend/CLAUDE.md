@@ -31,6 +31,31 @@ Both Angular skills assume a host toolchain and tell you to run `ng` directly. H
 skill's "run `ng build` when you're done" step is
 `docker compose run --rm app npm run build` — note `make build` is Docker's, it rebuilds the image.
 
+**The `angular-cli` MCP server.** The Angular CLI's own MCP server, declared in the root `.mcp.json`
+as `npx -y @angular/cli@21 mcp --read-only`. Six tools, and it discovers this workspace on its own —
+`list_projects` finds `frontend/angular.json` from the monorepo root, no configuration needed:
+
+- `search_documentation` — queries `angular.dev`, clamped to the workspace's own major version.
+  **Prefer this over `context7` for anything Angular**; `context7` is generic across versions.
+- `get_best_practices` — the guidelines shipped inside the _installed_ `@angular/core`.
+- `find_examples` — official code examples. Reach for it on "show me how to…", where
+  `search_documentation` answers "what is…".
+- `list_projects` — workspace and project layout; builder, source root, style language.
+- `ai_tutor` — a curriculum for teaching Angular concepts.
+- `onpush_zoneless_migration` — an iterative plan for moving to `OnPush`/zoneless. It only _emits
+  instructions_; you apply each one, then call it again.
+
+This overlaps the `angular-developer` skill without replacing it: the skill is pinned, offline prose
+vendored in `.claude/skills/`, while `get_best_practices` reads whatever `@angular/core` is actually
+installed. Use both.
+
+**It never runs anything.** All six tools are read-only and none of them invoke `ng` — that is what
+`--read-only` guarantees, by barring the CLI's experimental `build`, `test`, `e2e` and `devserver`
+tools, which would shell out to `ng` on the host and bypass the container. Building, testing,
+linting and serving stay exactly as described above: Docker, via the Makefile. And the server itself
+must run on the host, not in the container — it sandboxes itself to the host paths Claude Code
+advertises, which do not exist under `/app`, so a containerised copy finds no workspace at all.
+
 ## Monorepo integration
 
 An Angular 21 app (project `nmk-frontend`), one subproject of a monorepo. **Read the root
