@@ -2,6 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**Skills.** Invoke the ones that fit before writing code:
+
+- `handbook:oop-guideline` — components, services and signals-as-state: what belongs where,
+  immutability, dependency injection.
+- `handbook:test-guideline` — what to test in a component, what to fake, black-box thinking for the
+  Vitest specs.
+- `superpowers:test-driven-development` — before implementing any component or service.
+- `frontend-design:frontend-design` — any new UI or visual reshaping; aesthetic direction, not just
+  markup.
+- `run` and `claude-in-chrome` — to actually look at the rendered page. `frontend-design` ends in a
+  critique pass that can't be done by reading templates.
+
 ## Monorepo integration
 
 An Angular 21 app (project `nmk-frontend`), one subproject of a monorepo. **Read the root
