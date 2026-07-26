@@ -1,0 +1,6 @@
+name: nmk-frontend-test
+
+services:
+  app:
+    env_file:
+      - .env.test

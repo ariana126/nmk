@@ -1,8 +1,14 @@
 # Frontend
 
 An Angular app, wired into the monorepo like the sibling projects: a `Makefile` speaking the shared
-target vocabulary, a Docker Compose stack named `nmk-frontend`, and an entry in the root Makefile's
-`PROJECTS` (after `backend`). So the root's fan-out targets reach it automatically.
+target vocabulary, Docker Compose stacks named `nmk-frontend` and `nmk-frontend-test`, and an entry
+in the root Makefile's `PROJECTS` (after `backend`). So the root's fan-out targets reach it
+automatically.
+
+Like the backend, it runs as two stacks: the dev server on port 4200 talking to the backend's dev
+stack, and a test server on 4201 talking to the backend's **test** stack — which is the one
+`make run-acceptance-tests` brings up. They are the same image with a different env file; see
+`CLAUDE.md`.
 
 Generated with [Angular CLI](https://github.com/angular/angular-cli) version 21.2.19.
 
@@ -11,12 +17,20 @@ Generated with [Angular CLI](https://github.com/angular/angular-cli) version 21.
 Runs in Docker via the Makefile. Prerequisites: Docker, Docker Compose, `make`. From this directory:
 
 ```bash
-make up                  # build (if needed) and start the dev server (http://localhost:4200), waiting until it serves
-make down                # stop and remove the container
-make sh                  # open a shell in the container
+make up                  # build (if needed) and start both servers (4200 and 4201), waiting until they serve
+make down                # stop and remove both stacks' containers
+make ps                  # status of both stacks' containers
+make sh                  # open a shell in the dev stack's container
 make run-unit-tests      # run the Vitest unit tests in a throwaway container
-make npm <script>        # run any package.json script inside the container
+make npm <script>        # run any package.json script inside the dev stack's container
 make help                # list all available make targets
+```
+
+Target the test stack on its own:
+
+```bash
+make test-up             # build (if needed) and start just the test server (http://localhost:4201)
+make test-down           # stop and remove just the test stack
 ```
 
 Code-quality checks — the bare targets are read-only; the `fix-` ones write:
@@ -43,7 +57,8 @@ package.json script. The common commands:
 ### Development server
 
 `ng serve` starts a local dev server on `http://localhost:4200/`, reloading on source changes.
-`make up` runs this in the container.
+`make up` runs this in the container — twice, once per stack. It forwards `/api` to the backend
+through `proxy.conf.mjs`, whose target comes from `API_PROXY_TARGET` in the stack's env file.
 
 ### Code scaffolding
 
@@ -61,8 +76,9 @@ default.
 
 ### Running end-to-end tests
 
-`ng e2e` runs end-to-end tests. Angular CLI ships no e2e framework by default — choose one that suits
-your needs.
+Not from here. The monorepo's end-to-end coverage is the sibling `acceptance-tests` project
+(Cucumber + Serenity/JS), run with `make run-acceptance-tests` from the root — which is what the
+test stack on 4201 exists to serve. Don't `ng add` a second e2e framework here.
 
 ### Additional resources
 

@@ -8,9 +8,21 @@ services:
       - '${APP_PORT:-4200}:4200'
     env_file:
       - .env
+    # The backend is a separate Compose project on its own network, so there is no service name
+    # to resolve — it is reachable only through the ports it publishes on the host. This maps
+    # that host to a name the dev-server proxy can target (see proxy.conf.mjs). The acceptance
+    # suite solves the same problem with network_mode: host, which is not open to us: two
+    # stacks have to publish two different ports.
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     volumes:
       - ./:/app
       - /app/node_modules
+      # The Angular build cache, kept out of the bind mount. Both stacks mount the same working
+      # tree, and two Vite dev servers sharing one dependency-optimizer cache directory would
+      # race; an anonymous volume per Compose project gives each its own. It also stops the
+      # cache landing on the host root-owned, since the container runs as root.
+      - /app/.angular
     healthcheck:
       test:
         [

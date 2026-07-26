@@ -77,7 +77,7 @@ run-unit-tests: ## Run the backend and frontend unit tests (no running stack nee
 
 run-acceptance-tests: ## Start the test environment if needed, then run the BDD acceptance suite
 	@$(MAKE) -C backend test-up
-	@$(MAKE) -C frontend up
+	@$(MAKE) -C frontend test-up
 	@$(MAKE) -C acceptance-tests up
 	@$(MAKE) -C acceptance-tests run
 

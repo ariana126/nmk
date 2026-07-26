@@ -20,8 +20,9 @@
 npm-debug.log
 yarn-error.log
 
-# dotenv environment variable files (created from .env.example by `make setup`)
+# dotenv environment variable files (created from their .example counterparts by `make setup`)
 .env
+.env.test
 
 # IDEs and editors
 .idea/

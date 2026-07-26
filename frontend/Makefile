@@ -1,18 +1,24 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down restart build logs ps sh run-unit-tests npm lint fix-lint format fix-format lint-accessibility
+.PHONY: help setup up down restart build logs ps sh run-unit-tests npm lint fix-lint format fix-format lint-accessibility test-setup test-up test-down
+
+COMPOSE_TEST := docker compose --env-file .env.test -f docker-compose.yml -f docker-compose.test.yml
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-28s\033[0m %s\n", $$1, $$2}'
 
-setup: ## Create .env from .env.example if it doesn't exist yet
+# Both stacks belong to this project, so setup means both env files — the root Makefile only
+# ever calls a project's `setup`, and it must not need to know a second one exists.
+setup: test-setup ## Create .env and .env.test from their .example files if they don't exist yet
 	@[ -f .env ] || cp .env.example .env
 
-up: setup ## Build (if needed) and start the dev server in the background, waiting until it serves
+up: setup ## Build (if needed) and start the dev + test servers, waiting until they serve
 	docker compose up --build -d --wait
+	$(COMPOSE_TEST) up --build -d --wait
 
-down: ## Stop and remove the container
+down: ## Stop and remove the dev + test stack containers
 	docker compose down
+	$(COMPOSE_TEST) down
 
 restart: down up ## Restart the stack
 
@@ -22,8 +28,8 @@ build: ## Rebuild the image
 logs: ## Tail logs from the container
 	docker compose logs -f
 
-ps: ## Show container status
-	docker compose ps
+ps: ## Show status of the dev + test stack containers
+	@docker ps -a --filter name=nmk-frontend --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 
 sh: ## Open a shell in the container
 	docker compose exec app bash
@@ -54,6 +60,15 @@ fix-format: setup ## Prettier auto-format
 lint-accessibility: setup ## axe-core accessibility audit against the running app (read-only)
 	docker compose up --build -d --wait app
 	docker compose run --rm --build a11y npm run lint:accessibility
+
+test-setup: ## Create .env.test from .env.test.example if it doesn't exist yet
+	@[ -f .env.test ] || cp .env.test.example .env.test
+
+test-up: setup ## Build (if needed) and start just the test server, waiting until it serves
+	$(COMPOSE_TEST) up --build -d --wait
+
+test-down: ## Stop and remove just the test stack's container
+	$(COMPOSE_TEST) down
 
 %:
 	@:

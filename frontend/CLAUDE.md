@@ -61,11 +61,13 @@ advertises, which do not exist under `/app`, so a containerised copy finds no wo
 An Angular 21 app (project `nmk-frontend`), one subproject of a monorepo. **Read the root
 `../CLAUDE.md` for the cross-cutting picture**; this section covers only how the frontend plugs in.
 
-Everything runs in Docker via the `Makefile` — a single `app` service defined in `docker-compose.yml`
-(Compose project `nmk-frontend`), built from the `Dockerfile` (`node:22-bookworm-slim`). The Makefile
-speaks the monorepo's shared vocabulary, so the root Makefile's fan-out targets reach it:
+Everything runs in Docker via the `Makefile` — one `app` service defined in `docker-compose.yml`,
+built from the `Dockerfile` (`node:22-bookworm-slim`), served by two Compose projects (see
+[Two stacks](#two-stacks) below). The Makefile speaks the monorepo's shared vocabulary, so the root
+Makefile's fan-out targets reach it:
 
-- `make up` / `make down` — start/stop the dev server (`ng serve`, http://localhost:4200), `up` waits until it serves.
+- `make up` / `make down` — start/stop both dev servers (`ng serve`, http://localhost:4200 and
+  http://localhost:4201), `up` waits until each serves.
 - `make lint` / `make fix-lint` — ESLint (`ng lint`); the bare target is read-only, `fix-` writes.
 - `make format` / `make fix-format` — Prettier; same read-only/writing split.
 - `make run-unit-tests` — Vitest (jsdom), runs once and exits. Wired into the root `run-unit-tests`, so CI gates it.
@@ -86,6 +88,46 @@ no workflow change. A _new kind_ of check would also need a root target, a CI jo
 `run-guardrails` line — see `../CLAUDE.md`. `lint-accessibility` is the worked example of that: a
 frontend-only gate with all four pieces.
 
+### Two stacks
+
+The same image runs as two Compose projects, and `up` and `down` act on **both** — the backend's
+split, mirrored:
+
+|                    | dev                          | test                                   |
+| ------------------ | ---------------------------- | -------------------------------------- |
+| Compose project    | `nmk-frontend`               | `nmk-frontend-test`                    |
+| Files              | `docker-compose.yml`         | `+ docker-compose.test.yml`            |
+| Env file           | `.env` (from `.env.example`) | `.env.test` (from `.env.test.example`) |
+| Published port     | 4200                         | 4201                                   |
+| `API_PROXY_TARGET` | backend dev, `:3000`         | backend test, `:3001`                  |
+
+The override file is five lines: the test stack is the same image with a different env file.
+Only the _host_ side of the port mapping moves — `${APP_PORT:-4200}:4200` — so the container still
+serves on 4200 and the healthcheck and `A11Y_BASE_URL` need no second value.
+
+Target the test stack on its own:
+
+```bash
+make test-up             # build (if needed) and start just the test server, waiting until it serves
+make test-down           # stop and remove just the test stack
+make test-setup          # create .env.test from .env.test.example (make setup already does this)
+```
+
+**Why the split.** `make run-acceptance-tests` runs the suite against the backend's **test** stack,
+which has its own database and gets truncated between scenarios. A frontend pointed at the dev
+backend would be the wrong subject for that suite, and pointing the single stack at the test backend
+instead would leave nothing to develop against. Two stacks, differing by port and proxy target, let
+both be up at once — the normal state after `make up`.
+
+Unlike the backend there is **no `NODE_ENV` switch**: nothing in `ng serve` changes behaviour on it,
+and the frontend has no equivalent of `TestingModule` to gate. The two stacks differ by the port
+they publish and the backend they proxy to, and by nothing else. Don't add one to "match".
+
+Everything else stays on the dev stack — `logs`, `sh`, `npm`, `build`, `lint-accessibility`, and
+every `docker compose run --rm` check. Those publish no ports, so they are safe to run while either
+stack owns 4200 or 4201. There is no `test-reset`: unlike the backend there is no database volume to
+wipe.
+
 ## The API client is generated — never hand-write it
 
 HTTP services and their models are generated from an OpenAPI contract by
@@ -96,6 +138,7 @@ against the API by hand, and do not edit anything under `src/app/api` — the ne
 | ------------------ | ----------------------------------- | ------------------------------------ |
 | `api/openapi.json` | the contract                        | committed, but **not** hand-editable |
 | `orval.config.ts`  | the generator config                | committed                            |
+| `proxy.conf.mjs`   | where `/api` is forwarded           | committed                            |
 | `src/app/api/`     | `<tag>/<tag>.service.ts` + `model/` | **generated, gitignored**            |
 
 `api/` sits beside `src/`, not inside it, because the spec is an input to the build rather than
@@ -127,12 +170,48 @@ Two settings in `orval.config.ts` are deliberate and commented there:
   signal should wrap the returned Observable in `rxResource()`. Individual operations can opt in via
   `override.operations.<operationId>.angular.retrievalClient`.
 - **No `baseUrl`.** Routes stay relative (`/api/users`), keeping the deployment target out of
-  generated code. When one is needed, the sanctioned mechanism is `ng generate environments`
-  (build-time `environment.apiUrl` + `fileReplacements`), not a string in the generator config.
+  generated code. What forwards them is `proxy.conf.mjs` — see [Reaching the API](#reaching-the-api)
+  below. Never put an address in the generator config.
 
 Authentication is _not_ generated. The contract's `bearer` scheme belongs in a functional
 `HttpInterceptorFn` registered as `provideHttpClient(withInterceptors([...]))` in `app.config.ts`,
 not threaded through every generated call.
+
+### Reaching the API
+
+The generated client asks for `/api/users`; `proxy.conf.mjs` is what turns that into a real backend.
+It is the dev server's `proxyConfig` (wired in `angular.json`'s `serve` target) and **the only place
+in this project that names the backend's address**:
+
+```js
+const target = process.env['API_PROXY_TARGET'] ?? 'http://localhost:3000';
+export default { '/api/**': { target, changeOrigin: true } };
+```
+
+That indirection is the point: the two stacks are one image differing by one env var, and every
+request stays same-origin so the backend needs no CORS. Three things about it are deliberate:
+
+- **`.mjs`, not the conventional `proxy.conf.json`.** JSON cannot read the environment, and reading
+  the environment is the whole job. `@angular/build` imports any non-`.json` proxy config as a
+  module (`utils/load-proxy-config.ts`), so this is supported, not a trick.
+- **Beside `src/`, not inside it** — same reasoning as `api/` and `a11y/`: it is tooling, not
+  something Angular compiles or serves. The Angular CLI docs put it in `src/`; this project's own
+  convention wins.
+- **`host.docker.internal`, not a service name.** The backend is a separate Compose project with
+  its own network, so no service-name DNS reaches it — only the ports it publishes on the host.
+  `docker-compose.yml` maps that name with `extra_hosts: host.docker.internal:host-gateway`. This
+  is the third Docker-networking gotcha in this project, alongside the two in
+  [Accessibility](#accessibility).
+
+**Not `environment.apiUrl` + `fileReplacements`.** That remains the right mechanism for a _deployed_
+build, where there is no dev server to proxy through, and it is what the `angular-developer` skill's
+`references/environment-configuration.md` describes. It is the wrong one here: environment files are
+build-time, so two targets would mean two builds where two env files suffice, and it would put the
+browser on a cross-origin call to `:3001` — CORS on the backend, for a problem the proxy does not
+have.
+
+Nothing here breaks the monorepo's one-way dependency: `API_PROXY_TARGET` is a URL, not a path.
+Nothing under `frontend/` resolves into `backend/`, and the project still builds if copied elsewhere.
 
 ### Testing against it
 
@@ -146,9 +225,12 @@ Generated code is not worth testing; the code that _calls_ it is. In `TestBed`, 
 > decorator does not exist in the installed `@angular/core` 21.2.x** — only `Injectable` is
 > declared. Ignore that page's decorator advice.
 
-Like `.angular/cache`, the generated tree is written by a container running as root, so it is
-root-owned on the host: `git clean` and `rm -rf` need `sudo`, or run them through
-`docker compose run --rm app`.
+The generated tree is written by a container running as root, so it is root-owned on the host:
+`git clean` and `rm -rf` need `sudo`, or run them through `docker compose run --rm app`. The
+Angular build cache used to be the same nuisance; it now lives in an anonymous volume
+(`- /app/.angular`) and never reaches the host at all — that volume is there because two dev
+servers sharing one dependency-optimizer cache would race, and losing the root-owned directory is
+the bonus.
 
 **If `make up` dies with `orval: not found`,** the long-lived container is reusing an anonymous
 `node_modules` volume created before orval was installed — `docker compose run --rm` builds a fresh

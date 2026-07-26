@@ -9,7 +9,10 @@ A monorepo of independent projects, each with its own Makefile, Docker Compose s
 - **`backend/`** — NestJS + Prisma + Postgres API (DDD + CQRS). Two Compose projects, both `app` + `db`:
   `nmk-backend` (development, ports 3000/5432) and `nmk-backend-test` (`NODE_ENV=test`, ports 3001/5433).
   `make up` starts both; the test stack is what the acceptance suite drives.
-- **`frontend/`** — Angular app (Vitest + jsdom, ESLint, Prettier). Compose project `nmk-frontend` (`app`), dev server on port 4200. Its Vitest unit tests are wired into the root `run-unit-tests`.
+- **`frontend/`** — Angular app (Vitest + jsdom, ESLint, Prettier). Two Compose projects, both a
+  single `app` service: `nmk-frontend` (development, port 4200, proxying `/api` to the dev backend
+  on 3000) and `nmk-frontend-test` (port 4201, proxying to the backend **test** stack on 3001).
+  `make up` starts both. Its Vitest unit tests are wired into the root `run-unit-tests`.
 - **`acceptance-tests/`** — black-box BDD suite (Cucumber + Serenity/JS) driving the backend over HTTP. Compose project `nmk-acceptance-tests` (`app`).
 
 **Read the subproject's own CLAUDE.md before working inside it.** This file covers only what is cross-cutting.
@@ -68,10 +71,13 @@ Reach a single project's Makefile with `<project>/<target>`: `make backend/sh`, 
 
 Use the slash form, not `make backend up` — Make would read `up` as a second root goal and start every stack a second time. For the same reason, targets taking an argument (`make npm <script>`) have no passthrough; run them from the subproject, or use the dedicated root target where one exists (`make migrate`).
 
-`make run-acceptance-tests` brings up the backend test stack, then the frontend, then the suite —
-the same order as `PROJECTS`. Today's suite is black-box HTTP against the backend and never touches
-the frontend, so that middle step is there to keep the environment whole as the suite grows to
-drive the UI. Dropping it would make the target cheaper and still green; keep it deliberately.
+`make run-acceptance-tests` brings up the backend test stack, then the **frontend test stack**
+(`frontend test-up`, not `up`), then the suite — the same order as `PROJECTS`. Today's suite is
+black-box HTTP against the backend and never touches the frontend, so that middle step is there to
+keep the environment whole as the suite grows to drive the UI. Dropping it would make the target
+cheaper and still green; keep it deliberately — and keep it on `test-up`, so the browser the suite
+will one day drive is already pointed at the same backend the suite truncates between scenarios,
+rather than at the developer's dev stack.
 
 `make up` does **not** migrate. The acceptance suite applies migrations itself (`POST /api/testing/migrations` in its `BeforeAll` hook), so `make run-acceptance-tests` is unaffected; run `make migrate` when driving the app by hand.
 
@@ -130,7 +136,11 @@ root target, no `run-guardrails` line. Enabling it once requires setting Pages' 
 `frontend` depends on the backend's *contract*, not on the backend project. It generates its HTTP
 client with orval from **its own copy** of the spec, `frontend/api/openapi.json`, so nothing under
 `frontend/` ever resolves a path into `backend/` and the project still builds if you copy it
-elsewhere. The copy is maintained here and only here — `make sync-api-contract` writes it,
+elsewhere. At runtime the same holds: the generated client emits relative routes, and
+`frontend/proxy.conf.mjs` forwards `/api` to whatever `API_PROXY_TARGET` names — a URL, not a path,
+and the only place in that project the backend's address appears. It is `host.docker.internal`
+because the two projects share no Docker network; the backend is reachable only through the ports
+it publishes on the host. The copy is maintained here and only here — `make sync-api-contract` writes it,
 `make lint-api-contract` fails when it drifts. The generated client itself is gitignored and rebuilt
 by npm `pre*` hooks on every start, build, test and lint; see `frontend/CLAUDE.md`.
 
