@@ -42,10 +42,14 @@ case "$rel" in
     remedy='frontend build output. Rebuild it with `docker compose run --rm app npm run build` from frontend/ — note `make frontend/build` is Docker'"'"'s, it rebuilds the image.' ;;
   acceptance-tests/target/*)
     remedy='Serenity output, rewritten by `make run-acceptance-tests` and `make render-living-documentation`. It accumulates across runs — `rm -rf acceptance-tests/target/` to start clean.' ;;
+  # Listed before the generic rule below, which would otherwise swallow it: syncing the frontend
+  # host tree needs one extra variable, and getting it wrong downloads browsers nothing here uses.
+  frontend/node_modules/*)
+    remedy='part of the host dependency tree, which exists only for the editor — the container shadows it with an anonymous volume, so nothing that runs ever reads this file. Sync it with `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci` (the browsers only ever run in Dockerfile.a11y'"'"'s image), never `npm install`. Real dependency changes belong in the container: `make frontend/sh`, then `npm install <pkg>`. See frontend/CLAUDE.md.' ;;
   */node_modules/*|node_modules/*)
-    remedy='part of an installed dependency tree. Run `npm install` in that project; never patch node_modules in place.' ;;
+    remedy='part of the host dependency tree, which exists only for the editor — the container shadows it with an anonymous volume, so nothing that runs ever reads this file. Sync it with `npm ci`, never `npm install`: `npm ci` installs strictly from the lockfile, `npm install` rewrites it as a side effect. Real dependency changes belong in the container: `make <project>/sh`, then `npm install <pkg>`.' ;;
   */package-lock.json|package-lock.json)
-    remedy='maintained by npm. Run `npm install <pkg>` in that project and commit the result.' ;;
+    remedy='maintained by npm, and the container'"'"'s npm owns it — every image and CI install with `npm ci`. Add the dependency inside the container (`make <project>/sh`, then `npm install <pkg>`) and commit the result. Running `npm install` on the host churns the file against a different npm version for no real change.' ;;
   *)
     exit 0 ;;
 esac
