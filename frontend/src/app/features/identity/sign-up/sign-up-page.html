@@ -1,0 +1,62 @@
+<!--
+  `novalidate` is mandatory, not stylistic. The [formField] directive writes real `required` and
+  `minlength` attributes onto these inputs, so without it the browser runs its own constraint
+  validation, blocks the submit event and shows a native bubble — and the accessible error region
+  below never renders. jsdom does not enforce constraint validation, so the unit tests stay green
+  either way; this only breaks in a real browser.
+-->
+<form class="card stack" novalidate (submit)="onSubmit($event)">
+  <div class="stack--tight stack">
+    <p class="eyebrow">Sign up</p>
+    <h1>Create your account</h1>
+  </div>
+
+  <!--
+    Present in the DOM at all times, with only its content toggled. A role="alert" element inserted
+    together with its text is announced unreliably; a live region that gains content is not.
+    tabindex="-1" so focus can be moved here when the failure belongs to no single field.
+  -->
+  <div class="alert alert--danger" role="alert" id="sign-up-alert" tabindex="-1">
+    @if (formErrors().length > 0) {
+      <span>{{ formErrors()[0] }}</span>
+    }
+  </div>
+
+  <div class="names">
+    <app-text-field
+      [field]="f.firstName"
+      name="firstName"
+      label="First name"
+      autocomplete="given-name"
+    />
+    <app-text-field
+      [field]="f.lastName"
+      name="lastName"
+      label="Last name"
+      autocomplete="family-name"
+    />
+  </div>
+
+  <app-text-field
+    [field]="f.email"
+    name="email"
+    label="Email address"
+    type="email"
+    autocomplete="email"
+  />
+
+  <app-text-field
+    [field]="f.password"
+    name="password"
+    label="Password"
+    type="password"
+    autocomplete="new-password"
+    hint="Use at least 12 characters."
+  />
+
+  <button class="button button--primary" type="submit" [disabled]="f().submitting()">
+    {{ f().submitting() ? 'Creating your account…' : 'Create account' }}
+  </button>
+
+  <p class="switch">Already have an account? <a routerLink="/login">Log in</a></p>
+</form>

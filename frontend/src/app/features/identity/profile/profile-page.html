@@ -1,0 +1,39 @@
+<div class="panel card stack">
+  <div class="stack--tight stack">
+    <p class="eyebrow">Profile</p>
+    <h1>Your account</h1>
+  </div>
+
+  <!-- aria-busy tells assistive technology the region is mid-update rather than simply empty. -->
+  <div [attr.aria-busy]="profile.isLoading() ? 'true' : null">
+    @if (profile.isLoading()) {
+      <p class="state" role="status">Loading your profile…</p>
+    } @else if (profile.error()) {
+      <div class="stack--tight stack">
+        <p class="alert alert--danger" role="alert">
+          We could not load your profile. Your session may have expired.
+        </p>
+        <div>
+          <button class="button button--quiet" type="button" (click)="reload()">Try again</button>
+        </div>
+      </div>
+    } @else if (hasNoDetails()) {
+      <p class="state">We do not have any details for your account yet.</p>
+    } @else {
+      <dl class="record">
+        @if (fullName() !== '') {
+          <div class="record__row">
+            <dt class="record__term">Name</dt>
+            <dd class="record__value">{{ fullName() }}</dd>
+          </div>
+        }
+        @if (profile.value()?.email) {
+          <div class="record__row">
+            <dt class="record__term">Email address</dt>
+            <dd class="record__value">{{ profile.value()?.email }}</dd>
+          </div>
+        }
+      </dl>
+    }
+  </div>
+</div>

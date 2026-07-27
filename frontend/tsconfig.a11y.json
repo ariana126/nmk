@@ -8,5 +8,13 @@
     "outDir": "./out-tsc/a11y",
     "types": ["node"]
   },
-  "include": ["a11y/**/*.ts", "playwright.config.ts"]
+  /* The storage-key module is listed explicitly so the audit can seed a session with the same
+     constant the app reads, rather than a copy of the literal that nothing keeps in step. It is
+     dependency-free by design — importing anything with an Angular runtime here would not survive
+     Playwright's transpile into Node. */
+  "include": [
+    "a11y/**/*.ts",
+    "playwright.config.ts",
+    "src/app/core/identity/access-token-storage-key.ts"
+  ]
 }

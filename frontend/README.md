@@ -12,6 +12,18 @@ stack, and a test server on 4201 talking to the backend's **test** stack — whi
 
 Generated with [Angular CLI](https://github.com/angular/angular-cli) version 21.2.19.
 
+## Pages
+
+| Route      |                                                                              |
+| ---------- | ---------------------------------------------------------------------------- |
+| `/`        | What nmk is, told through the acceptance scenario that proves the flow below |
+| `/sign-up` | Create an account, then log straight in and land on the profile              |
+| `/login`   | Log in; honours `returnUrl` when the guard sent you here                     |
+| `/profile` | The signed-in account, behind `authGuard`                                    |
+
+Sign-up, log-in and log-out are the app's one vertical slice, against the API's `/api/users`,
+`/api/auth/login` and `/api/users/me`. `CLAUDE.md` covers how the token is held and attached.
+
 ## Commands
 
 Runs in Docker via the Makefile. Prerequisites: Docker, Docker Compose, `make`. From this directory:

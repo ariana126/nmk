@@ -79,6 +79,13 @@ cheaper and still green; keep it deliberately — and keep it on `test-up`, so t
 will one day drive is already pointed at the same backend the suite truncates between scenarios,
 rather than at the developer's dev stack.
 
+That growth now has a target. The frontend's identity slice (`/sign-up`, `/login`, `/profile`) is the
+first UI the suite could drive, and it already speaks the same vocabulary as
+`acceptance-tests/specs/registration/sign-up.feature` — _signs up_, _login_, _sees his profile_. Its
+markup is addressable the way Serenity/JS would need: a `<label for>` on every input, a real
+`<button type="submit">`, no `div` click targets. The accessibility gate already forces that, so
+nothing extra is needed to keep it true — but don't "simplify" it away.
+
 `make up` does **not** migrate. The acceptance suite applies migrations itself (`POST /api/testing/migrations` in its `BeforeAll` hook), so `make run-acceptance-tests` is unaffected; run `make migrate` when driving the app by hand.
 
 `make migrate` reaches the dev stack only — it is `docker compose exec` against `nmk-backend`. The test

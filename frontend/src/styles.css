@@ -1,1 +1,387 @@
-/* You can add global styles to this file, and also import other style files */
+/**
+ * Global styles: tokens, reset, focus, and the primitives shared across pages.
+ *
+ * Two things live here rather than in components. Tokens, because they are global by definition.
+ * And the form/button/card primitives, because sign-up and login render the same controls — a
+ * component copy of them would duplicate one set of rules across two stylesheets and spend the
+ * per-component budget (4kB warn, 8kB error) twice to say the same thing. The cost is that these
+ * class names are unencapsulated, so they stay few, prefixed, and documented.
+ *
+ * The app commits to a single light appearance. There is no dark scheme: every colour here is
+ * authored against a measured contrast ratio, and a second set would double that surface for a
+ * requirement nobody has.
+ */
+
+/* ---------------------------------------------------------------- reset -- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+h1,
+h2,
+h3,
+p,
+dl,
+dd,
+figure {
+  margin: 0;
+}
+
+/* --------------------------------------------------------------- tokens -- */
+
+:root {
+  /**
+   * Cool drafting paper and navy ink, one indigo for interaction, one green for verdicts.
+   *
+   * oklch throughout: its lightness channel is perceptually uniform, so a ratio can be reasoned
+   * about from the L value instead of found by trial. That technique is inherited from the scaffold
+   * this replaced, along with the lesson its one comment recorded — a colour used as text on a tint
+   * of itself must clear 4.5:1 against *that tint*, not against the canvas.
+   */
+  --paper: oklch(97.6% 0.006 245);
+  --sheet: oklch(99.4% 0.002 245);
+  --sheet-sunken: oklch(96.4% 0.008 245);
+  --ink: oklch(23% 0.028 258);
+  --ink-soft: oklch(45% 0.022 258);
+  --rule: oklch(89% 0.012 245);
+  --rule-strong: oklch(76% 0.018 245);
+
+  /* Interaction. Never used to mean "passing" — that is the verdict colour's only job. */
+  --indigo: oklch(46% 0.17 268);
+  --indigo-hover: oklch(38% 0.16 268);
+  --on-indigo: oklch(99.5% 0 0);
+
+  /* Verdict. Appears only where something has actually been proven. */
+  --verdict: oklch(45% 0.13 152);
+  --verdict-weak: oklch(95.5% 0.03 152);
+
+  /* Failure. */
+  --flag: oklch(48% 0.19 25);
+  --flag-weak: oklch(96.5% 0.022 25);
+
+  --focus-ring: var(--indigo);
+  --focus-ring-width: 3px;
+  --focus-ring-offset: 2px;
+
+  /**
+   * The spec speaks in monospace, the explanation in sans. Monospace is the display face here
+   * because this product's most characteristic artifact is a plaintext `.feature` file — the type
+   * choice is drawn from the subject rather than applied to it. Both are system stacks: a
+   * self-hosted webfont is a real dependency, and the scaffold's dangling `Inter` reference (named
+   * in a font-family, never actually loaded) is the failure mode to avoid.
+   */
+  --font-mono:
+    ui-monospace, 'SF Mono', 'Cascadia Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.5rem;
+
+  --leading-tight: 1.1;
+  --leading-snug: 1.3;
+  --leading-base: 1.6;
+  --tracking-tight: -0.03em;
+  --tracking-wide: 0.08em;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  --shadow-md: 0 2px 4px oklch(23% 0.028 258 / 5%), 0 8px 24px oklch(23% 0.028 258 / 6%);
+
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --ease: cubic-bezier(0.2, 0, 0.2, 1);
+
+  --measure: 34rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------------------------------------------------------------- focus -- */
+
+/**
+ * One rule for the whole app. `outline: none` must never appear anywhere — if a control needs a
+ * different indicator, change it here rather than removing it there. The ring is the interaction
+ * indigo, which clears 3:1 against both --paper and --sheet (WCAG 2.2 SC 1.4.11 and 2.4.13).
+ */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+  border-radius: var(--radius-sm);
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--space-3);
+  top: var(--space-3);
+  z-index: 10;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background-color: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  transform: translateY(calc(-100% - var(--space-5)));
+  transition: transform var(--duration-base) var(--ease);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------------------------------------------ typography -- */
+
+.display {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+  text-wrap: balance;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.prose {
+  max-width: var(--measure);
+  color: var(--ink-soft);
+}
+
+a {
+  color: var(--indigo);
+  text-underline-offset: 0.2em;
+}
+
+a:hover {
+  color: var(--indigo-hover);
+}
+
+/* ---------------------------------------------------------------- stack -- */
+
+/* Vertical rhythm without a margin cascade: the gap belongs to the container. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.stack--tight {
+  gap: var(--space-3);
+}
+
+.card {
+  padding: var(--space-6);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  background-color: var(--sheet);
+  box-shadow: var(--shadow-md);
+}
+
+/* ---------------------------------------------------------------- forms -- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/**
+ * Labels are monospace because a field name is a term from the contract — the same vocabulary the
+ * API and the spec use — while the hint beneath one is prose, and reads as sans.
+ */
+.field__label {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.field__hint {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.field__control {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-md);
+  background-color: var(--sheet);
+  color: var(--ink);
+  transition:
+    border-color var(--duration-fast) var(--ease),
+    box-shadow var(--duration-fast) var(--ease);
+}
+
+.field__control:hover {
+  border-color: var(--ink-soft);
+}
+
+.field__control[aria-invalid='true'] {
+  border-color: var(--flag);
+  box-shadow: inset 0 0 0 1px var(--flag);
+}
+
+.field__error {
+  display: flex;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--flag);
+}
+
+/* A mark as well as a colour: colour alone is not an accessible way to say "this one". */
+.field__error::before {
+  content: '\2715';
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+
+/* -------------------------------------------------------------- buttons -- */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease),
+    border-color var(--duration-fast) var(--ease);
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.button--primary {
+  background-color: var(--indigo);
+  color: var(--on-indigo);
+}
+
+.button--primary:hover:not(:disabled) {
+  background-color: var(--indigo-hover);
+  color: var(--on-indigo);
+}
+
+.button--quiet {
+  border-color: var(--rule-strong);
+  background-color: transparent;
+  color: var(--ink);
+}
+
+.button--quiet:hover:not(:disabled) {
+  border-color: var(--ink-soft);
+  background-color: var(--sheet-sunken);
+  color: var(--ink);
+}
+
+/* --------------------------------------------------------------- alerts -- */
+
+.alert {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+
+/* An empty live region must take no space, or every form opens with a gap in it. */
+.alert:empty {
+  display: none;
+}
+
+.alert--danger {
+  border-color: var(--flag);
+  background-color: var(--flag-weak);
+  color: var(--flag);
+}
+
+.alert--notice {
+  border-color: var(--verdict);
+  background-color: var(--verdict-weak);
+  color: var(--verdict);
+}

@@ -1,0 +1,33 @@
+/* The shell is only a grid: header, then whatever the route renders, filling the viewport. */
+:host {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100dvh;
+}
+
+/**
+ * Centre the routed page when it is shorter than the viewport, so a short page (the 404, an auth
+ * card) sits composed rather than pinned to the top with dead space beneath it.
+ *
+ * `safe` is load-bearing: plain `center` would overflow a tall page equally in both directions,
+ * putting its first lines above the scroll origin where they cannot be reached. `safe` falls back
+ * to `start` exactly when that would happen.
+ */
+main {
+  display: grid;
+  align-content: safe center;
+}
+
+/**
+ * <main> is focused programmatically after each navigation, which would otherwise draw a focus ring
+ * around the whole page. Suppress it for that case only — :focus-visible still applies, so a
+ * keyboard user following the skip link keeps a visible target.
+ */
+main:focus {
+  outline: none;
+}
+
+main:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: calc(var(--focus-ring-offset) * -1);
+}

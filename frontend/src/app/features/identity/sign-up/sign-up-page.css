@@ -1,0 +1,34 @@
+:host {
+  display: block;
+  padding: var(--space-7) var(--space-5);
+}
+
+form {
+  max-width: 30rem;
+  margin: 0 auto;
+}
+
+h1 {
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+}
+
+/* The two name fields read as one question, so they sit on one line where there is room. */
+.names {
+  display: grid;
+  gap: var(--space-5);
+}
+
+@media (min-width: 30rem) {
+  .names {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+  }
+}
+
+.switch {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}

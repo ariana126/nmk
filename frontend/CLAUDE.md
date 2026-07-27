@@ -239,6 +239,86 @@ one every time and so never shows the problem. Rebuild once with
 described for the backend's Prisma client, and it bites after any dependency change; a fresh clone
 and CI are unaffected.
 
+## Directory layout
+
+```
+src/app/
+  core/       singletons and cross-cutting HTTP concerns — no UI. Injected anywhere.
+  features/   routed pages, lazy, one chunk per feature
+  ui/         presentational components, route-agnostic
+  api/        GENERATED. Off-limits; see above.
+```
+
+This mirrors the backend's `framework/` vs `modules/identity/` split, so the two projects describe
+themselves with the same vocabulary. The identity pages share **one** lazy chunk rather than one
+each: they share the server-error mapping and the field markup, and a visitor on `/login` is usually
+one step from `/profile`.
+
+## Authentication
+
+The API issues a bearer token in a JSON body — it sets no cookie — so the client has to hold it.
+
+- **`SessionStore` keeps it in `localStorage`**, under the key exported by
+  `core/identity/access-token-storage-key.ts`. Be honest about the trade-off rather than quiet about
+  it: any script on this origin can read that token, so an XSS anywhere in the app or its
+  dependencies is a full account takeover. What it buys is a session that survives a reload and a
+  second tab. **If the API ever sets an `httpOnly`, `SameSite=Strict` cookie, delete that class
+  outright** rather than adapting it — there would be nothing left for it to hold.
+- **`accessTokenInterceptor` attaches it** to any `/api/**` request that is not marked `SKIP_AUTH`.
+  The opt-out is an `HttpContextToken` set at the **call site** (`{ context: anonymous() }`), never a
+  URL list inside the interceptor: distinguishing `POST /api/users` from `GET /api/users/me` means
+  re-encoding route knowledge the generated client already owns, somewhere no gate keeps in sync.
+  There are exactly three such call sites and they all live in `IdentityGateway`.
+- **On a 401 for a request that carried a token**, the interceptor clears the session and redirects
+  to `/login?returnUrl=…`. A failed _login_ is exempt for free, because it was sent anonymously and
+  so never reaches that handler — no second status check needed to tell "wrong password" from "your
+  token expired".
+- **`authGuard` is UX, not security.** It spares the user a page that would only fail. `GET
+/api/users/me` is what actually enforces anything, and it would 401 regardless.
+
+`returnUrl` comes from the address bar, so login validates it before navigating: a path on this
+origin only. `https://evil.example` and the protocol-relative `//evil.example` are both destinations
+the router would otherwise happily honour.
+
+## Forms
+
+Signal forms, always. The API is marked `@experimental 21.x` in the installed typings — it can change
+in a minor, so keep the surface small and concentrated. Four things are not obvious from the reference
+page and were each verified against `node_modules/@angular/forms/types/`:
+
+- **`<form novalidate>` is mandatory.** The `[formField]` directive writes real `required`,
+  `minlength`, `min`, `max` and `disabled` **DOM attributes**. Without `novalidate` the browser's own
+  constraint validation swallows the `submit` event and shows its native bubble, so the accessible
+  error region never renders. **jsdom does not reproduce this** — unit tests stay green while the real
+  page is broken. It is a browser-only failure, which makes it a `claude-in-chrome` review item.
+- **The directive selector is `[formField]`**, not `[field]`: `<input [formField]="f.email">`, and
+  `imports: [FormField]`.
+- **`f.email` is the structural field; `f.email()` is its state.** Flags live on the state:
+  `f.email().touched()`, `f.email().errors()`. In templates too — `@if (f.email().invalid())`.
+- **Never `null` or `undefined` as an initial field value.** Use `''`, `0`, `[]`.
+
+### Server errors belong on fields
+
+`submit()`'s action returns `Promise<TreeValidationResult>`, so the errors the API returns can be bound
+to individual fields. There is **no `customError` export** — a `ValidationError.WithOptionalFieldTree`
+is a plain object literal, `{ kind, message, fieldTree? }`. **Omit `fieldTree` to put the error on the
+form root**, which is how the `role="alert"` banner gets its content.
+
+`core/http/problem-details.ts` narrows a thrown value to an RFC 9457 document and
+`features/identity/server-errors.ts` maps it to those errors. Two rules there:
+
+- **Branch on `type`, never on `detail`.** `detail` is optional per RFC 9457; `type` is always present.
+  This is the same convention the acceptance suite already follows.
+- **Write the message client-side per `type`; never echo `detail`.** The backend's 409 detail is
+  `User already exists with email john@example.com` — phrasing we neither control nor would have chosen.
+
+Two behaviours worth knowing before they surprise you. `errorSummary()` is sorted by
+`compareDocumentPosition`, which is what makes "focus the first invalid field" a one-liner rather than a
+DOM walk. And submission errors live in a `linkedSignal` sourced on the field's value, so a server error
+**clears the moment the user edits that field** — and a root-level error clears on _any_ edit, because
+the root's value is the whole model. That is the behaviour you want; if you ever need a banner that
+survives typing, it must be a separate component signal, not a root submission error.
+
 ## Accessibility
 
 Two requirements, and they are gated, not aspirational:
@@ -256,8 +336,26 @@ page, failing on any violation tagged `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`
 `best-practice`, AAA and `experimental` rules are deliberately excluded — see the comment on
 `wcagAaTags` for why.
 
-**Add your route to `auditedRoutes` when you add a page.** A page missing from that list is a page
-nothing checks; it is the one manual step the gate depends on.
+**Add your route to `publicRoutes` or `authenticatedRoutes` when you add a page.** A page missing
+from both lists is a page nothing checks; it is the one manual step the gate depends on.
+
+The split exists because `/profile` sits behind `authGuard`. Rather than give the audit a real
+session — which would make the one gate that needs a browser _also_ need a migrated database and a
+seeded user, throwing away the hermeticity every other frontend check has — the authenticated block
+seeds a token and stubs the one call the page makes:
+
+- **`page.addInitScript`, not `page.evaluate`.** It has to run before any page script, because
+  `SessionStore` reads the token as it is constructed and the guard redirects on the first
+  navigation. Writing the key after `goto` is already too late.
+- **`page.route('**/api/users/me', …)`** fulfils in the browser, upstream of the dev server's proxy,
+  so nothing reaches the backend.
+- The key itself is **imported** from `core/identity/access-token-storage-key.ts`, not retyped. That
+  module exists, dependency-free, precisely so `a11y/` can import it — which is also why
+  `tsconfig.a11y.json` lists it explicitly in `include`.
+
+The trade-off is worth stating: this proves the profile page's _markup_ is accessible, not that any
+particular real payload is. And a form's **error state is not reachable by `goto`**, so nothing here
+grades it — that belongs to the manual pass below.
 
 It runs in a browser rather than in the Vitest suite for one reason: jsdom has no layout and no CSS
 cascade, so axe's `color-contrast` rule can only ever return _incomplete_ there. Contrast is half the
@@ -412,7 +510,11 @@ what each layer covers, what neither can, and the route list you have to keep cu
 - Use `computed()` for derived state
 - Set `changeDetection: ChangeDetectionStrategy.OnPush` in `@Component` decorator
 - Prefer inline templates for small components
-- Prefer Reactive forms instead of Template-driven ones
+- Use **Signal Forms** (`@angular/forms/signals`) for every form — the v21+ default, and what the
+  `angular-developer` skill mandates. Do NOT import `FormControl`, `FormGroup`, `FormArray` or
+  `FormBuilder`; signal forms replace them and there is no builder. Read
+  `.claude/skills/angular-developer/references/signal-forms.md` rather than working from memory.
+  See [Forms](#forms) below for the three traps that bite immediately.
 - Do NOT use `ngClass`, use `class` bindings instead
 - Do NOT use `ngStyle`, use `style` bindings instead
 - When using external templates/styles, use paths relative to the component TS file.
