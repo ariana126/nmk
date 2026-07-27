@@ -1,12 +1,13 @@
 ---
-description: Develop a new feature outside-in — QA writes acceptance tests from the Gherkin, backend implements to green, with a user checkpoint at each architectural layer.
+description: Develop a new feature outside-in — QA writes acceptance tests from the Gherkin, then backend and frontend implement to green, with a user checkpoint at each architectural layer.
 argument-hint: <feature-file-or-area>
 ---
 
-You are orchestrating an outside-in feature workflow across two subagents:
-`qa-engineer` (owns `acceptance-tests/`) and `backend-engineer` (owns
-`backend/`). The Gherkin already exists; the goal is executable acceptance tests,
-a passing backend implementation, green guardrails, and a reviewed commit.
+You are orchestrating an outside-in feature workflow across three subagents:
+`qa-engineer` (owns `acceptance-tests/`), `backend-engineer` (owns `backend/`)
+and `frontend-engineer` (owns `frontend/`). The Gherkin already exists; the goal
+is executable acceptance tests, a passing backend implementation, the UI those
+tests drive, green guardrails, and a reviewed commit.
 
 ## How this orchestration works (read first)
 
@@ -22,9 +23,13 @@ a passing backend implementation, green guardrails, and a reviewed commit.
 - **Terminology.** "Business Flow" = the Specification + Domain layers of the
   screenplay model (step-definitions delegating to named, *stubbed* business
   tasks/questions). "Technical layer" = the Integration layer (abilities, HTTP
-  interactions, test data). The agents map these explicitly.
+  interactions, test data). "UI slice" = the frontend's `core/` layer (gateway +
+  session state) plus its `features/` + `ui/` layer (routed page +
+  presentational components). The agents map these explicitly.
 - **Never cross project boundaries.** `qa-engineer` never edits backend code or
-  `.feature` files; `backend-engineer` never references `acceptance-tests/`.
+  `.feature` files; `backend-engineer` never references `acceptance-tests/`;
+  `frontend-engineer` works only inside `frontend/`, never references `backend/`
+  or `acceptance-tests/`, and never hand-edits the generated API client.
 
 ## Steps
 
@@ -71,29 +76,57 @@ a passing backend implementation, green guardrails, and a reviewed commit.
   repositories + mappers, exception mapper. Regenerate the OpenAPI spec if the
   HTTP surface changed." *(No user checkpoint here.)*
 
-### 7. Green the acceptance suite
-- Run `make run-acceptance-tests` from the repo root.
+### 7. Frontend — UI slice  *(checkpoint 4)*
+- **First, sync the contract yourself**: run `make sync-api-contract` from the
+  repo root. The backend step just regenerated `backend/docs/openapi.json`, and
+  the frontend generates its client from its own copy. Do not delegate this —
+  only the root may name both projects.
+- **If no scenario in `$ARGUMENTS` is UI-voiced**, ask the user whether this
+  feature has a UI surface before dispatching. Do not silently skip — a missing
+  frontend is more often an oversight than an intent. If they say it is
+  API-only, go to step 8 and say so in your report.
+- Fresh `Agent(frontend-engineer, run_in_background: false)`: "Plan the **UI
+  slice** for the feature described by `$ARGUMENTS`: the `core/` layer (gateway
+  methods, state) and the `features/` + `ui/` layer (routes, page components,
+  form model, error/empty/loading states, navigation, and the
+  `a11y/accessibility.spec.ts` route-list additions). Output the plan only — do
+  NOT write."
+- Present to the user; get approval/edits.
+- `SendMessage`: "Approved. Write ONLY the `core/` layer — gateway and state,
+  with co-located specs."
+- `SendMessage`: "Now write the **`features/` + `ui/`** layer — routes, page
+  components, templates and presentational components — and register every new
+  route in `a11y/accessibility.spec.ts`. Then run the browser pass on the
+  rendered page." *(No user checkpoint here.)*
+
+### 8. Green the acceptance suite
+- Run `make run-acceptance-tests` from the repo root. The suite is **blended**:
+  some examples drive a real browser at the frontend test stack on 4201, so a UI
+  failure is as likely as an API one.
 - If red, triage each failure and route it: an **automation bug** goes back to
-  `qa-engineer`; a **backend gap** goes back to `backend-engineer` (resume the
-  relevant agent with `SendMessage`). Loop until the suite is green.
+  `qa-engineer`; a **backend gap** goes back to `backend-engineer`; a **UI gap**
+  goes back to `frontend-engineer` (resume the relevant agent with
+  `SendMessage`). Loop until the suite is green.
 - `make down` once the suite is green.
 
-### 8. Guardrails
+### 9. Guardrails
 - Run `make fix-violations` to converge auto-fixable issues, then
-  `make run-guardrails` — the local mirror of the six CI jobs.
+  `make run-guardrails` — the local mirror of the eight CI jobs.
 - Report the **actual** output; never claim a pass you didn't run. Fix any
   failure (via the owning agent) and re-run until clean. `make down` after.
 
-### 9. Review and refactor
-- Review the full diff of both projects against their skills — `handbook:screenplay-guideline`
-  for `acceptance-tests/`, and `handbook:oop-guideline` / `handbook:architecture-guideline` /
-  `handbook:test-guideline` for `backend/` (the owning subagents invoke these; you don't).
-  Apply improving refactors through the owning agent, then re-run
-  `make run-guardrails` to confirm nothing regressed.
+### 10. Review and refactor
+- Review the full diff of every touched project against its skills —
+  `handbook:screenplay-guideline` for `acceptance-tests/`; `handbook:oop-guideline` /
+  `handbook:architecture-guideline` / `handbook:test-guideline` for `backend/`; and
+  `angular-developer` / `handbook:oop-guideline` / `handbook:test-guideline` /
+  `frontend-design:frontend-design` for `frontend/` (the owning subagents invoke
+  these; you don't). Apply improving refactors through the owning agent, then
+  re-run `make run-guardrails` to confirm nothing regressed.
 
-### 10. Commit  *(draft → confirm)*
+### 11. Commit  *(draft → confirm)*
 - `git status` and `git diff` to review what will be committed.
 - Stage the changes and propose a Conventional Commit message. Show the message
   to the user and commit **only after they confirm**.
 - End the commit message with:
-  `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`
+  `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`
