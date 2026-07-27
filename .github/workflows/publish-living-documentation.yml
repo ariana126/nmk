@@ -4,6 +4,10 @@ name: Publish living documentation
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - '**/*.md'
+      - '.claude/**'
+      - '**/.claude/**'
   workflow_dispatch:
 
 # Serialise Pages deploys; a newer push to main supersedes an in-flight publish.
