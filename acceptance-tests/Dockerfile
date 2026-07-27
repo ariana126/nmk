@@ -1,4 +1,4 @@
-FROM node:22-bookworm-slim
+FROM node:24-bookworm-slim
 
 # The Serenity BDD reporter renders its living documentation via a Java binary.
 RUN apt-get update \

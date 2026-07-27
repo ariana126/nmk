@@ -62,7 +62,7 @@ An Angular 21 app (project `nmk-frontend`), one subproject of a monorepo. **Read
 `../CLAUDE.md` for the cross-cutting picture**; this section covers only how the frontend plugs in.
 
 Everything runs in Docker via the `Makefile` — one `app` service defined in `docker-compose.yml`,
-built from the `Dockerfile` (`node:22-bookworm-slim`), served by two Compose projects (see
+built from the `Dockerfile` (`node:24-bookworm-slim`), served by two Compose projects (see
 [Two stacks](#two-stacks) below). The Makefile speaks the monorepo's shared vocabulary, so the root
 Makefile's fan-out targets reach it:
 
@@ -388,7 +388,7 @@ it doesn't recognise, which would need an `allowedHosts` entry in `angular.json`
 exempt from both, so neither workaround is needed.
 
 The audit gets its own image so that only this one gate carries a browser; `lint`, `format` and
-`run-unit-tests` keep cold-building the plain `node:22-bookworm-slim` one, which matters because
+`run-unit-tests` keep cold-building the plain `node:24-bookworm-slim` one, which matters because
 every CI job builds from scratch. The `a11y` service sits behind a Compose profile, so `make up`
 ignores it.
 
@@ -464,9 +464,9 @@ Three frontend-specific wrinkles:
   runs in `Dockerfile.a11y`'s image. The editor needs Playwright's types, never its browsers. Both
   Dockerfiles set the same variable for the same reason; only the a11y one then installs Chromium
   back, deliberately and alone.
-- **orval declares `engines.node >= 22.18`.** A host on an older 22.x still installs it — npm only
+- **orval declares `engines.node >= 22.18`.** A host on an older Node still installs it — npm only
   warns — and the editor only needs orval's types for `orval.config.ts`, which resolve regardless.
-  The generator itself always runs in the container, which is on 22.23, so this never bites in
+  The generator itself always runs in the container, which is on 24.18, so this never bites in
   practice. Don't run `npx orval` on the host to work around it.
 - **The generated client is gitignored, so a fresh clone has no `src/app/api`** and the editor will
   flag every import from it as unresolved. `npm ci` does not create it — nothing on the host does.

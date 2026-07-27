@@ -130,7 +130,7 @@ keeps the `node_modules` its image built via `npm ci` and never sees the host co
 changes only when you install locally.
 
 After the container's dependencies or the Prisma schema change, sync the host with **`npm ci`**
-(needs Node 22 locally), then restart the editor's TS/language server:
+(needs Node 24 locally), then restart the editor's TS/language server:
 
 ```bash
 npm ci   # installs exactly from package-lock.json and runs postinstall (prisma generate)
