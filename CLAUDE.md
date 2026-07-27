@@ -72,19 +72,25 @@ Reach a single project's Makefile with `<project>/<target>`: `make backend/sh`, 
 Use the slash form, not `make backend up` — Make would read `up` as a second root goal and start every stack a second time. For the same reason, targets taking an argument (`make npm <script>`) have no passthrough; run them from the subproject, or use the dedicated root target where one exists (`make migrate`).
 
 `make run-acceptance-tests` brings up the backend test stack, then the **frontend test stack**
-(`frontend test-up`, not `up`), then the suite — the same order as `PROJECTS`. Today's suite is
-black-box HTTP against the backend and never touches the frontend, so that middle step is there to
-keep the environment whole as the suite grows to drive the UI. Dropping it would make the target
-cheaper and still green; keep it deliberately — and keep it on `test-up`, so the browser the suite
-will one day drive is already pointed at the same backend the suite truncates between scenarios,
-rather than at the developer's dev stack.
+(`frontend test-up`, not `up`), then the suite — the same order as `PROJECTS`. All three steps are
+load-bearing: the suite drives a real browser at the frontend on **4201**, so dropping the middle
+step now fails the run rather than merely covering less. `test-up` rather than `up` is what points
+that browser at the same backend the suite truncates between scenarios, instead of at the
+developer's dev stack.
 
-That growth now has a target. The frontend's identity slice (`/sign-up`, `/login`, `/profile`) is the
-first UI the suite could drive, and it already speaks the same vocabulary as
-`acceptance-tests/specs/registration/sign-up.feature` — _signs up_, _login_, _sees his profile_. Its
-markup is addressable the way Serenity/JS would need: a `<label for>` on every input, a real
-`<button type="submit">`, no `div` click targets. The accessibility gate already forces that, so
-nothing extra is needed to keep it true — but don't "simplify" it away.
+The suite is **blended**: two of its seventeen examples drive the UI — the sign-up journey and the
+duplicate-email rejection — and the remaining fifteen stay black-box HTTP against the backend. That
+split follows _BDD in Action_ ch10's four reasons to write a UI test, and the feature file itself
+knows nothing about it: each step's grammatical voice decides which door it goes through, so there
+are no `@ui`/`@api` tags to keep in sync. `acceptance-tests/CLAUDE.md` has the table and the
+reasoning; change the ratio there, deliberately, not by drift.
+
+What makes the frontend drivable is its markup: a `<label for>` on every input, a real
+`<button type="submit">`, no `div` click targets. The suite locates elements **by label text**
+rather than by id or a `data-test` attribute — there are none — precisely because
+`make lint-accessibility` already fails the build when a label goes missing, so the accessibility
+gate doubles as the locator contract. Weakening one silently weakens the other; don't "simplify"
+either away.
 
 `make up` does **not** migrate. The acceptance suite applies migrations itself (`POST /api/testing/migrations` in its `BeforeAll` hook), so `make run-acceptance-tests` is unaffected; run `make migrate` when driving the app by hand.
 
@@ -124,7 +130,13 @@ fail: axe's own report shows the offending element, where the job log only names
 
 The acceptance-tests job also renders the living documentation
 (`make render-living-documentation`) and uploads `acceptance-tests/target/site/serenity` as the
-`living-documentation` artifact — on every run, pass or fail.
+`living-documentation` artifact — on every run, pass or fail. A failing UI step attaches a
+screenshot to that artifact, for the same reason the accessibility job uploads axe's report: the
+job log can name the element, only the picture shows the page.
+
+That job's image carries Chromium, so it is the slowest to cold-build after the accessibility one.
+Nothing else about the workflow changed when the suite started driving the UI — `run-acceptance-tests`
+already brought the frontend test stack up, which is exactly what that step was reserved for.
 
 A separate workflow, `.github/workflows/publish-living-documentation.yml`, publishes that
 documentation to a durable URL. On every push to `main` it re-runs the suite, renders the site
@@ -136,9 +148,20 @@ root target, no `run-guardrails` line. Enabling it once requires setting Pages' 
 
 ## The dependency runs one way
 
-`acceptance-tests` drives `backend` over HTTP and knows nothing else about it — no importing backend code, no direct database access.
+`acceptance-tests` drives `backend` over HTTP and `frontend` through a browser, and knows nothing
+else about either — no importing code from them, no direct database access, no reading a frontend
+source file to learn a selector. Two doors, both of them public: the API a client would call, and
+the page a person would look at. A precondition that can't be set up through one of those two
+doesn't get set up.
 
-**Backend code and docs must never reference the acceptance-tests project.** The root is the only place both are named. When adding a project to the root Makefile's `PROJECTS`, keep start-up order: anything that talks to the backend comes after it.
+**Backend and frontend code and docs must never reference the acceptance-tests project.** The root
+is the only place they are named together. When adding a project to the root Makefile's `PROJECTS`,
+keep start-up order: anything that talks to another project comes after it.
+
+The one place the suite leans on a frontend detail is its **locators**, and it leans on the
+accessible name rather than the implementation — a field is found by its visible `<label>`, a
+profile value by the `<dt>` beside it. That is a contract `make lint-accessibility` already
+enforces, which is why the frontend carries no `data-test` attributes and needs none.
 
 `frontend` depends on the backend's *contract*, not on the backend project. It generates its HTTP
 client with orval from **its own copy** of the spec, `frontend/api/openapi.json`, so nothing under

@@ -1,7 +1,5 @@
 import { Given, Then, When } from '@cucumber/cucumber';
 import { Actor, actorInTheSpotlight } from '@serenity-js/core';
-import { Ensure, equals, isPresent } from '@serenity-js/assertions';
-import { TheDetailsTheySignedUpWith } from '../../screenplay/common/notes';
 import { EnsureValidationErrorFor } from '../../screenplay/common/problem-detail';
 import {
   EnsureRejectedAsDuplicateEmail,
@@ -19,10 +17,11 @@ import {
   EnsureLoggedIn,
   EnsureNotLoggedIn,
   LogIn,
+  LogOut,
   TheirOwnCredentials,
 } from '../../screenplay/authentication/log-in';
 import {
-  TheProfile,
+  EnsureProfileMatchesSignUpDetails,
   ViewTheirProfile,
 } from '../../screenplay/profile/view-profile';
 
@@ -31,22 +30,24 @@ Given("{actor} doesn't have an account", function (_actor: Actor) {
   // Naming the actor is what puts them in the spotlight for the "he" steps that follow.
 });
 
+// Passive voice — we care only *that* the account exists, so take the API shortcut.
 Given('{actor} already has an account', function (actor: Actor) {
   return actor.attemptsTo(
-    SignUp(signUpDetailsOf(actor.name)),
+    SignUp.viaApiUsing(signUpDetailsOf(actor.name)),
     EnsureSignedUp(),
   );
 });
 
+// Active voice, and the one journey this suite demonstrates end to end — through the browser.
 When('{pronoun} signs up', function (actor: Actor) {
-  return actor.attemptsTo(SignUp(signUpDetailsOf(actor.name)));
+  return actor.attemptsTo(SignUp.using(signUpDetailsOf(actor.name)));
 });
 
 When(
   '{pronoun} signs up with the password {string}',
   function (actor: Actor, password: string) {
     return actor.attemptsTo(
-      SignUp({ ...signUpDetailsOf(actor.name), password }),
+      SignUp.viaApiUsing({ ...signUpDetailsOf(actor.name), password }),
     );
   },
 );
@@ -54,14 +55,18 @@ When(
 When(
   '{pronoun} signs up with the email {string}',
   function (actor: Actor, email: string) {
-    return actor.attemptsTo(SignUp({ ...signUpDetailsOf(actor.name), email }));
+    return actor.attemptsTo(
+      SignUp.viaApiUsing({ ...signUpDetailsOf(actor.name), email }),
+    );
   },
 );
 
 When(
   '{pronoun} signs up without providing his {field}',
   function (actor: Actor, field: SignUpField) {
-    return actor.attemptsTo(SignUp(signUpDetailsWithout(actor.name, field)));
+    return actor.attemptsTo(
+      SignUp.viaApiUsing(signUpDetailsWithout(actor.name, field)),
+    );
   },
 );
 
@@ -69,7 +74,7 @@ When(
   "{actor} signs up with {actorName}'s email",
   function (actor: Actor, otherActorName: string) {
     return actor.attemptsTo(
-      SignUp({
+      SignUp.using({
         ...signUpDetailsOf(actor.name),
         email: signUpDetailsOf(otherActorName).email,
       }),
@@ -98,19 +103,32 @@ Then(
   },
 );
 
+/**
+ * Logging out first is load-bearing, not tidiness: the sign-up form logs the visitor straight in
+ * and lands them on their profile, so without it this step would confirm a session that already
+ * existed and pass whether logging in works or not.
+ */
 Then('{pronoun} should be able to login', function (actor: Actor) {
-  return actor.attemptsTo(LogIn(TheirOwnCredentials()), EnsureLoggedIn());
+  return actor.attemptsTo(
+    LogOut(),
+    LogIn.using(TheirOwnCredentials()),
+    EnsureLoggedIn(),
+  );
 });
 
+// The actors reaching this step never opened a browser — their sign-up was rejected at the API.
 Then('{pronoun} should not be able to login', function (actor: Actor) {
-  return actor.attemptsTo(LogIn(TheirOwnCredentials()), EnsureNotLoggedIn());
+  return actor.attemptsTo(
+    LogIn.viaApiUsing(TheirOwnCredentials()),
+    EnsureNotLoggedIn(),
+  );
 });
 
 Then(
   "{actor} should not be able to login with {actorName}'s email",
   function (actor: Actor, otherActorName: string) {
     return actor.attemptsTo(
-      LogIn({
+      LogIn.using({
         email: signUpDetailsOf(otherActorName).email,
         password: signUpDetailsOf(actor.name).password,
       }),
@@ -122,15 +140,6 @@ Then(
 Then('sees his profile', function () {
   return actorInTheSpotlight().attemptsTo(
     ViewTheirProfile(),
-    Ensure.that(TheProfile().id, isPresent()),
-    Ensure.that(TheProfile().email, equals(TheDetailsTheySignedUpWith().email)),
-    Ensure.that(
-      TheProfile().firstName,
-      equals(TheDetailsTheySignedUpWith().firstName),
-    ),
-    Ensure.that(
-      TheProfile().lastName,
-      equals(TheDetailsTheySignedUpWith().lastName),
-    ),
+    EnsureProfileMatchesSignUpDetails(),
   );
 });

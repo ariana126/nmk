@@ -2,7 +2,10 @@
   "compilerOptions": {
     "module": "commonjs",
     "target": "es2021",
-    "lib": ["es2021"],
+    // "dom" is for @serenity-js/web's type signatures, not for running in a browser: the suite is
+    // a Node process driving Chromium over Playwright's protocol, and never evaluates its own code
+    // in the page. Without it, PageElement and friends fail to typecheck.
+    "lib": ["es2021", "dom"],
     "moduleResolution": "node",
     "esModuleInterop": true,
     "skipLibCheck": true,

@@ -10,3 +10,11 @@ const configuredApiBaseUrl =
 export const apiBaseUrl: string = configuredApiBaseUrl.endsWith('/')
   ? configuredApiBaseUrl
   : `${configuredApiBaseUrl}/`;
+
+/**
+ * The frontend the suite drives in a browser: the **test** stack on 4201, which proxies `/api` to
+ * the same backend test stack `apiBaseUrl` names. Pointing this at the dev server on 4200 would
+ * drive a UI wired to a database this suite never truncates.
+ */
+export const appBaseUrl: string =
+  process.env.APP_BASE_URL ?? 'http://localhost:4201';

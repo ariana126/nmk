@@ -8,11 +8,7 @@ import { SignUpPayload } from '../registration/sign-up-details';
 export interface AccountNotes {
   /** What the actor actually submitted to sign up — invalid or incomplete payloads included. */
   details: SignUpPayload;
-  accessToken: string;
 }
 
 export const TheDetailsTheySignedUpWith = (): QuestionAdapter<SignUpPayload> =>
   notes<AccountNotes>().get('details');
-
-export const TheirAccessToken = (): QuestionAdapter<string> =>
-  notes<AccountNotes>().get('accessToken');
