@@ -8,8 +8,8 @@ import { HttpContext, HttpContextToken } from '@angular/common/http';
  * (`GET /api/users/me`) by more than their path prefix. An interceptor deciding this would have to
  * re-encode route-and-method knowledge the generated client already owns, in a place no gate keeps in
  * step with the contract. The call site is the only code that knows whether it is calling an
- * anonymous endpoint, so the decision belongs there. There are exactly three such call sites and they
- * all live in `IdentityGateway`.
+ * anonymous endpoint, so the decision belongs there. There are exactly two such call sites — one per
+ * endpoint above — and both live in `IdentityGateway`.
  */
 export const SKIP_AUTH = new HttpContextToken<boolean>(() => false);
 

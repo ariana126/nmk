@@ -28,7 +28,7 @@ ps: ## Show container status
 sh: ## Open a shell in the container
 	docker compose exec app bash
 
-run: ## Run the BDD acceptance suite (requires the backend stack to be running)
+run: ## Run the BDD acceptance suite (requires the backend and frontend test stacks to be running)
 	docker compose exec app npm test
 
 render-living-documentation: ## Render the living documentation from the last run into target/site/serenity

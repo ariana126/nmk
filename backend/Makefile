@@ -25,7 +25,7 @@ restart: down up ## Restart the stack
 build: ## Rebuild the app image
 	docker compose build
 
-logs: ## Tail logs from all containers
+logs: ## Tail logs from the dev stack's containers
 	docker compose logs -f
 
 ps: ## Show status of the dev + test stack containers
