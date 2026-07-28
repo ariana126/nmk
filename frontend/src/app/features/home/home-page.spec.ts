@@ -27,9 +27,9 @@ describe('HomePage', () => {
 
     expect(steps).toHaveLength(4);
     expect(steps[0]).toContain('Given');
-    expect(steps[0]).toContain('Ariana does not have an account');
+    expect(steps[0]).toContain("Ariana doesn't have an account");
     expect(steps[1]).toContain('When');
-    expect(steps[3]).toContain('sees her profile');
+    expect(steps[3]).toContain('sees his profile');
   });
 
   it('marks the steps as a list, so the count is announced rather than inferred', async () => {

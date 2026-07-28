@@ -205,14 +205,13 @@ interface SpecStep {
 })
 export class HomePage {
   /**
-   * Copied from `acceptance-tests/specs/registration/sign-up.feature`, rephrased only from the
-   * suite's third person into the second. If that file's scenario changes, change this to match —
-   * it is a quotation, and a stale one would be a claim the suite does not back.
+   * An illustrative excerpt of the sign-up scenario in
+   * `acceptance-tests/specs/registration/sign-up.feature` — not a live-synced copy of it.
    */
   protected readonly steps: readonly SpecStep[] = [
-    { keyword: 'Given', text: 'Ariana does not have an account' },
-    { keyword: 'When', text: 'she signs up' },
-    { keyword: 'Then', text: 'she should be able to log in' },
-    { keyword: 'And', text: 'sees her profile' },
+    { keyword: 'Given', text: "Ariana doesn't have an account" },
+    { keyword: 'When', text: 'he signs up' },
+    { keyword: 'Then', text: 'he should be able to login' },
+    { keyword: 'And', text: 'sees his profile' },
   ];
 }

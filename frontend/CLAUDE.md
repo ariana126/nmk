@@ -214,11 +214,10 @@ have.
 Nothing here breaks the monorepo's one-way dependency: `API_PROXY_TARGET` is a URL, not a path.
 Nothing under `frontend/` resolves into `backend/`, and the project still builds if copied elsewhere.
 
-One content dependency does exist, and it is worth knowing because no gate protects it: the home
-page renders a hand-copied quotation of a scenario from the acceptance suite's feature file, with a
-comment saying to update it when that file changes. That is a copy maintained by hand, not by a
-`cmp` like the API contract — so it can drift silently, and it has. Treat it as prose to verify
-against the source, not as something that stays true on its own.
+The home page renders an illustrative excerpt of the sign-up scenario from the acceptance suite's
+feature file. It is deliberately **not** a live-synced copy — there is no `cmp` like the API
+contract, no gate, and no obligation to update it when the feature file changes. Treat it as
+marketing prose inspired by the source, not a quotation that must stay true to it.
 
 ### Testing against it
 
