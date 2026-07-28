@@ -231,8 +231,17 @@ Generated code is not worth testing; the code that _calls_ it is. In `TestBed`, 
 **There is no `vitest.config.ts`, and adding one would do nothing.** `angular.json`'s `test` target
 is `@angular/build:unit-test` with no options at all, and that builder's `runnerConfig` defaults to
 `false` — it does not go looking for a Vitest config file. The defaults it applies are the Vitest
-runner and, with no `browsers` set, jsdom. What configuration exists lives in `tsconfig.spec.json`
-(`types: ["vitest/globals"]`). If you genuinely need a runner setting, add it to `angular.json`.
+runner and, with no `browsers` set, jsdom. If you genuinely need a runner setting, add it to
+`angular.json`.
+
+**`describe`/`it`/`expect`/`beforeEach`/`afterEach` are imported explicitly from `vitest`** in every
+spec, not pulled in via `vitest/globals` ambient types (`tsconfig.spec.json` sets `"types": []`, same
+as `tsconfig.app.json`). The globals mode is what Vitest's own docs default to, but WebStorm's
+TypeScript service cannot fully resolve `it`'s type through it — `typeof import('vitest')['it']`
+inside `vitest/globals.d.ts`'s `declare global` block evaluates to `{}` there (`describe`'s simpler
+`SuiteAPI` type is unaffected), even though `tsc --noEmit` is clean both on the host and in the
+container. An explicit `import { it } from 'vitest'` sidesteps the ambient-global-plus-`typeof`-
+indexing path entirely. Keep new specs consistent with this — don't reintroduce `vitest/globals`.
 
 > `references/creating-services.md` in the vendored skill tells you to write `@Service()`. **That
 > decorator does not exist in the installed `@angular/core` 21.2.x** — only `Injectable` is

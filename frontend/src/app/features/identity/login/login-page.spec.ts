@@ -4,6 +4,7 @@ import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router, withComponentInputBinding } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { PROBLEM } from '../../../core/http/problem-details';
 import { SessionStore } from '../../../core/identity/session-store';

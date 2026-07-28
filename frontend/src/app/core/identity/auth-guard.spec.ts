@@ -6,6 +6,7 @@ import {
   RouterStateSnapshot,
   UrlTree,
 } from '@angular/router';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { authGuard } from './auth-guard';
 import { SessionStore } from './session-store';
