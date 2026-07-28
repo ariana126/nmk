@@ -22,9 +22,10 @@ databases, so a run can never touch anything a developer is working in:
 | frontend **test**   | `nmk-frontend-test` | **4201** | proxies `/api` to the backend test stack      |
 
 Not the dev stacks on 3000/4200. The testing endpoints this suite depends on
-(`POST /api/testing/migrations` and `/truncate`) mount only at `NODE_ENV === 'test'`, so they simply
-don't exist on 3000 — and a run can never truncate dev data. The frontend has no such switch; what
-keeps it honest is `API_PROXY_TARGET`, which points 4201 at 3001 and 4200 at 3000.
+(`POST /api/testing/migrations`, `/truncate` and `/clock/reset`) mount only at
+`NODE_ENV === 'test'`, so they simply don't exist on 3000 — and a run can never truncate dev data.
+The frontend has no such switch; what keeps it honest is `API_PROXY_TARGET`, which points 4201 at
+3001 and 4200 at 3000.
 
 Start them with `make -C ../backend test-up` and `make -C ../frontend test-up`, or let the root
 `make run-acceptance-tests` do the whole sequence: both test stacks up, this container up, suite run.
@@ -70,6 +71,9 @@ starts both in the right order.
 ```bash
 make up                  # build (if needed) and start this container in the background
 make down                # stop and remove the container
+make restart             # down, then up
+make build               # rebuild the image
+make ps                  # container status
 make sh                  # open a shell in the container
 make run                 # run the full acceptance suite
 make render-living-documentation   # render the living documentation from the last run
@@ -90,6 +94,12 @@ make fix-format          # Prettier auto-format
 These need nothing running — each starts a throwaway container (`docker compose run --rm`). The
 `fix-` ones still write to the working tree, since the repo is bind-mounted into the container.
 
+Two things to know about their reach. They cover **only** `screenplay/`, `step-definitions/` and
+`support/` — `cucumber.cjs`, the configs, and every `.feature` file are neither linted nor
+formatted. And ESLint runs Prettier as a rule here, so `make fix-lint` already reformats and
+`make fix-format` is a cheap re-check. `.prettierrc` sets no `printWidth`, so this project wraps at
+80 columns — narrower than the frontend's. Code pasted from there will be reflowed.
+
 Make targets are verb-object and hyphenated (`fix-format`); the package.json scripts they
 wrap keep the colon (`format:fix`). Prefer the targets over `make npm <script>` — because
 `lint` and `format` are now real targets, `make npm lint` runs the linter twice (once
@@ -105,16 +115,25 @@ npx cucumber-js --tags '@wip'                        # only @wip scenarios
 npx tsc --noEmit                                     # typecheck
 ```
 
+`npm test` is `node --env-file=.env … cucumber-js`, and that flag is load-bearing: **it fails
+outright if `.env` is missing**, since Node exits on an unreadable `--env-file`. The `npx` forms
+above skip it and work anyway, because Compose supplies the same variables through `env_file` — so
+they only work *inside* the container.
+
+`tsconfig.json` lists `"dom"` in `lib` even though this is a Node process. That is correct and
+needed: Playwright's types describe browser APIs. The reason is in a comment there; don't tidy it
+away.
+
 **`@wip`** marks scenarios written ahead of the backend. `npm test` excludes them. No scenario carries the tag today — the suite is fully green against the current backend, and it should stay that way (see *Assertion conventions*).
 
 ## Architecture
 
 ```
-specs/<feature-area>/*.feature          # Gherkin. Organised by feature area, not by backend module
-step-definitions/<feature-area>/*.steps.ts   # Thin: each step just delegates to a task
+specs/registration/sign-up.feature      # Gherkin. Organised by feature area, not by backend module
+step-definitions/registration/sign-up.steps.ts   # Thin: each step just delegates to a task
 screenplay/                             # DOMAIN layer: what an actor does, in business language
 ├── common/                             # Reusable across feature areas
-│   ├── clock.ts                        # FreezeTimeAt, LetTimePass (backend testing endpoints)
+│   ├── clock.ts                        # FreezeTimeAt, LetTimePass — written, but NOT wired up yet
 │   ├── notes.ts                        # AccountNotes; TheDetailsTheySignedUpWith
 │   └── problem-detail.ts               # EnsureProblemDetail, EnsureValidationErrorFor, FieldsThatFailedValidation, problemTypeFor
 ├── ui/                                 # INTEGRATION layer: Lean Page Objects. Locate and report only
@@ -124,8 +143,10 @@ screenplay/                             # DOMAIN layer: what an actor does, in b
 ├── registration/
 │   ├── sign-up.ts                      # SignUp.using | .viaApiUsing, EnsureSignedUp, TheOmittedSignUpField, EnsureRejectedAsDuplicateEmail
 │   └── sign-up-details.ts              # signUpDetailsOf, signUpDetailsWithout, requiredSignUpFields
-├── authentication/                     # LogIn.using | .viaApiUsing, LogOut, EnsureLoggedIn, EnsureNotLoggedIn, EnsureCredentialsRejected, TheirOwnCredentials
-└── profile/                            # ViewTheirProfile, EnsureProfileMatchesSignUpDetails
+├── authentication/
+│   └── log-in.ts                       # LogIn.using | .viaApiUsing, LogOut, EnsureLoggedIn, EnsureNotLoggedIn, EnsureCredentialsRejected, TheirOwnCredentials
+└── profile/
+    └── view-profile.ts                 # ViewTheirProfile, EnsureProfileMatchesSignUpDetails
 support/
 ├── actors.ts                           # Cast: assigns abilities to every actor
 ├── config.ts                           # apiBaseUrl (trailing-slash normalised — see Gotchas), appBaseUrl
@@ -133,6 +154,11 @@ support/
 └── hooks.ts                            # BeforeAll / Before / After / AfterAll: Serenity config, browser, DB reset, cast
 cucumber.cjs                            # loads support/ + step-definitions/ via ts-node
 ```
+
+`screenplay/common/clock.ts` is the one entry above that describes intent rather than current
+behaviour: `FreezeTimeAt` and `LetTimePass` are written but have **no call site**. The clock the
+suite actually uses is reset in `support/hooks.ts` by raw `fetch`. Wire these two up when a scenario
+needs to move time, or delete them — don't assume they are exercised.
 
 The three layers of `handbook:screenplay-guideline` map onto that tree: `specs/` is the
 **Specification** layer, `screenplay/` minus `ui/` is the **Domain** layer, and `screenplay/ui/`
@@ -150,6 +176,16 @@ value, a button's text. The frontend has **no `data-test` attributes** and doesn
 accessibility gate already fails the build if an input loses its `<label for>`, so the label is a
 contract that something else keeps honest. That is why `Form.inputFor('Email address')` is the
 idiom here and `By.css('#email')` is not.
+
+**Know where that safety net ends.** Reaching an accessible name still means anchoring on some
+structure first, and those anchors are ungated: `form app-text-field`, `form button`,
+`form [role="alert"]`, `.field__error`, `dl div`, `app-site-header button|a`. Two of them are
+*provably* unprotected — the accessibility audit visits each route in its initial state and says so
+explicitly, so a form's error state is graded by nothing. Rename the `field__error` class or drop
+the `app-text-field` wrapper and this suite breaks with no check failing first.
+
+Keep those selectors few, keep them in `screenplay/ui/`, and when one breaks, remember the fix is a
+frontend conversation rather than a new `data-test` attribute here.
 
 ### Screenplay vocabulary, as implemented here
 
@@ -181,6 +217,9 @@ Step definitions stay thin — they translate a Gherkin line into `actor.attempt
 
 `support/hooks.ts`:
 
+- **module load** — `setDefaultTimeout(60_000)`. Cucumber's default of 5s is not enough for a cold
+  run: the first navigation also waits out Vite's on-demand compilation of the identity chunk. If a
+  step ever fails on a timeout that looks absurdly short, this is the knob.
 - **`BeforeAll`** — `configure({ crew })` (Serenity reporters, once for the whole suite), launch
   one Chromium, and `POST /api/testing/migrations`.
 - **`Before`** — `POST /api/testing/truncate`, then `POST /api/testing/clock/reset` so every
@@ -195,13 +234,25 @@ The browser context matters as much as the truncation. The frontend keeps its ac
 `localStorage`, which a shared context would carry from one scenario into the next; a truncated
 database plus a stale token is a confusing failure. One browser per run, one context per actor.
 
-Both testing endpoints are exposed by the backend only when `NODE_ENV === 'test'` — which is why this
-suite must be pointed at the test stack, and why pointing it at the dev stack fails in `BeforeAll`
-with a 404 rather than quietly wiping a development database.
+All three testing endpoints are exposed by the backend only when `NODE_ENV === 'test'` — which is why
+this suite must be pointed at the test stack, and why pointing it at the dev stack fails in
+`BeforeAll` with a 404 rather than quietly wiping a development database.
+
+`hooks.ts` calls them with a plain `fetch` and a hand-built URL, not through `CallAnApi` and
+`PostRequest`. That is deliberate — hook traffic is not an actor doing something, and routing it
+through Screenplay would put setup noise in the living documentation. Two consequences: these calls
+never appear in the report, and the no-leading-slash rule in *Gotchas* does not apply to them. A
+fourth testing endpoint should follow the same convention.
 
 ### Assertion conventions
 
 **One reusable envelope check, then one distinguishing fact.** `EnsureProblemDetail(status, slug)` (`screenplay/common/problem-detail.ts`) asserts the whole RFC 9457 envelope — `Content-Type: application/problem+json`, `type`, `title`, `status`. Domain-specific tasks build on it and add only what makes them different.
+
+Today the only thing that builds on it is `EnsureValidationErrorFor`; no step definition calls
+`EnsureProblemDetail` directly, and `problemTypeFor` is used only inside that module. It stays
+exported because it is the right entry point for the next non-validation problem type, not because
+anything currently reaches for it. Note also that the `type` base URL it expects is hardcoded here
+and hardcoded again in the backend, with nothing keeping the two in step.
 
 **Assert `type`, not `detail`.** `type` is always present and is the diagnostic field; `detail` is optional per RFC 9457.
 
@@ -227,12 +278,20 @@ ends by waiting for a field to be visible, so `FillInTheSignUpForm` can simply t
 belt-and-braces — the suite flaked exactly here before those waits existed, and only when the
 frontend container was cold enough that Vite still had to compile the identity chunk.
 
+**The two locate tasks are not symmetric, and `LogIn.using` cannot open a scenario.**
+`LocateTheSignUpForm` navigates; `LocateTheLoginForm` does not — it clicks the header's "Log in"
+link on whatever page is already open, which is what a returning visitor actually does. A scenario
+whose first UI step is a login therefore runs against `about:blank` and fails with
+`ListItemNotFoundError`. Reach the login page from somewhere, or add a navigation to that task
+deliberately.
+
 ### Living documentation
 
 Two phases:
 
-1. `make run` — the `@serenity-js/serenity-bdd` crew member writes one raw JSON file per scenario
-   into `target/site/serenity/`, and `Photographer.whoWill(TakePhotosOfFailures)` drops a PNG
+1. `make run` — the `@serenity-js/serenity-bdd` crew member writes one raw JSON file per scenario,
+   into the directory `ArtifactArchiver` is configured with in `support/hooks.ts`
+   (`target/site/serenity/`), and `Photographer.whoWill(TakePhotosOfFailures)` drops a PNG
    beside it whenever a UI step fails. Failures only: a photo per step would swamp the report, and
    a failed UI step can name the element it wanted but not show you the page it was looking at.
 2. `make render-living-documentation` — shells out to the Serenity BDD **Java** CLI to aggregate those into a browsable HTML site at `target/site/serenity/index.html`. This is why the Dockerfile installs `default-jre-headless`. It renders whatever the last run produced; it does not run any tests.

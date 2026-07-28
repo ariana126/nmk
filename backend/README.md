@@ -65,13 +65,17 @@ All error responses follow the **RFC 9457 Problem Detail** standard (`Content-Ty
 
 ```json
 {
-  "type": "https://example.com/problems/user-already-exists",
+  "type": "https://my-api-doc.dev/problems/user-already-exists",
   "title": "User Already Exists",
   "status": 409,
   "detail": "A user with this email is already registered.",
-  "instance": "/api/auth/signup"
+  "email": "someone@example.com"
 }
 ```
+
+A mapper supplies the trailing slug (`user-already-exists`); `ProblemDetail` prefixes the base URL.
+`instance` is optional and no mapper currently sets one. Extension members — `email` above — are
+spread at the top level of the body rather than nested.
 
 The `type` URI is the canonical identifier for a problem type — prefer asserting on `type` over `detail` in tests.
 
@@ -79,6 +83,8 @@ The `type` URI is the canonical identifier for a problem type — prefer asserti
 
 1. Create an exception class extending `ApplicationException` in `application/exceptions/`.
 2. Add a case to the module's `ExceptionMapper` in `infrastructure/http/exception.mapper.ts`.
+3. If that mapper is new, add it to the `ExceptionMappers` array in `exception.filter.ts` — it is a
+   hardcoded list, not DI. Miss this and the exception falls through to a generic 500.
 
 `HttpExceptionFilter` iterates all registered `ExceptionMapper[]` instances; the first mapper that handles the exception wins.
 

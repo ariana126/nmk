@@ -146,8 +146,9 @@ something TypeScript compiles or Angular serves — `tsconfig.app.json` includes
 and `angular.json`'s asset glob covers only `public/`.
 
 **You never run the generator explicitly.** `npm run generate:api` is wired to npm's `prestart`,
-`prebuild`, `pretest`, `prelint` and `prelint:fix` hooks, so `make up`, `make run-unit-tests`,
-`make lint` and `make fix-lint` each rebuild the client from the committed spec first. That is why
+`prebuild`, `pretest`, `pretest:watch`, `prelint` and `prelint:fix` hooks, so `make up`,
+`make run-unit-tests`, `make lint` and `make fix-lint` each rebuild the client from the committed
+spec first. That is why
 the generated tree can be gitignored without any command ever seeing a stale or missing client.
 Nothing in this project reaches outside it: the contract is a file that lives here, which is what
 keeps the project standalone.
@@ -213,6 +214,12 @@ have.
 Nothing here breaks the monorepo's one-way dependency: `API_PROXY_TARGET` is a URL, not a path.
 Nothing under `frontend/` resolves into `backend/`, and the project still builds if copied elsewhere.
 
+One content dependency does exist, and it is worth knowing because no gate protects it: the home
+page renders a hand-copied quotation of a scenario from the acceptance suite's feature file, with a
+comment saying to update it when that file changes. That is a copy maintained by hand, not by a
+`cmp` like the API contract — so it can drift silently, and it has. Treat it as prose to verify
+against the source, not as something that stays true on its own.
+
 ### Testing against it
 
 Generated code is not worth testing; the code that _calls_ it is. In `TestBed`, provide
@@ -220,6 +227,12 @@ Generated code is not worth testing; the code that _calls_ it is. In `TestBed`, 
 `HttpTestingController`. Per `references/testing-fundamentals.md`, this project is zoneless: never
 `fixture.detectChanges()` — Act, then `await fixture.whenStable()`, then assert, which is the shape
 `src/app/app.spec.ts` already uses.
+
+**There is no `vitest.config.ts`, and adding one would do nothing.** `angular.json`'s `test` target
+is `@angular/build:unit-test` with no options at all, and that builder's `runnerConfig` defaults to
+`false` — it does not go looking for a Vitest config file. The defaults it applies are the Vitest
+runner and, with no `browsers` set, jsdom. What configuration exists lives in `tsconfig.spec.json`
+(`types: ["vitest/globals"]`). If you genuinely need a runner setting, add it to `angular.json`.
 
 > `references/creating-services.md` in the vendored skill tells you to write `@Service()`. **That
 > decorator does not exist in the installed `@angular/core` 21.2.x** — only `Injectable` is
@@ -243,7 +256,12 @@ and CI are unaffected.
 
 ```
 src/app/
-  core/       singletons and cross-cutting HTTP concerns — no UI. Injected anywhere.
+  app.ts, app.html, app.css   the shell: site header, router outlet, live region
+  app.config.ts               providers — HTTP, router, interceptors
+  app.routes.ts               the route table
+  core/       singletons and cross-cutting concerns — no UI. Injected anywhere.
+    http/       interceptors, HttpContext tokens, problem-details narrowing
+    identity/   SessionStore, IdentityGateway, the storage-key module
   features/   routed pages, lazy, one chunk per feature
   ui/         presentational components, route-agnostic
   api/        GENERATED. Off-limits; see above.
@@ -253,6 +271,20 @@ This mirrors the backend's `framework/` vs `modules/identity/` split, so the two
 themselves with the same vocabulary. The identity pages share **one** lazy chunk rather than one
 each: they share the server-error mapping and the field markup, and a visitor on `/login` is usually
 one step from `/profile`.
+
+**Specs are co-located** — `foo.spec.ts` sits beside `foo.ts`, not in a parallel tree. That is why
+`tsconfig.spec.json` includes `src/**/*.spec.ts` while `tsconfig.app.json` excludes it; keep both in
+step if you ever move them.
+
+Two things about the shell that a new page has to cooperate with:
+
+- **Every route must declare a `title`.** `App` reads it off the router snapshot and writes it into
+  a `<p role="status">` live region, which is how a screen reader learns the page changed at all —
+  Angular's router does not announce navigation on its own. A route without a `title` regresses that
+  silently, and no gate catches it.
+- **Query parameters arrive as `input()` signals**, via `withComponentInputBinding()` in
+  `app.config.ts`. They are not bound at construction time, so a value derived from one needs
+  `linkedSignal`, not `signal` — `login-page.ts` has the worked example and the reason in a comment.
 
 ## Authentication
 
@@ -268,7 +300,7 @@ The API issues a bearer token in a JSON body — it sets no cookie — so the cl
   The opt-out is an `HttpContextToken` set at the **call site** (`{ context: anonymous() }`), never a
   URL list inside the interceptor: distinguishing `POST /api/users` from `GET /api/users/me` means
   re-encoding route knowledge the generated client already owns, somewhere no gate keeps in sync.
-  There are exactly three such call sites and they all live in `IdentityGateway`.
+  There are exactly two such call sites — register and login — and both live in `IdentityGateway`.
 - **On a 401 for a request that carried a token**, the interceptor clears the session and redirects
   to `/login?returnUrl=…`. A failed _login_ is exempt for free, because it was sent anonymously and
   so never reaches that handler — no second status check needed to tell "wrong password" from "your
@@ -280,11 +312,46 @@ The API issues a bearer token in a JSON body — it sets no cookie — so the cl
 origin only. `https://evil.example` and the protocol-relative `//evil.example` are both destinations
 the router would otherwise happily honour.
 
+**A successful sign-up logs the new user straight in and lands on `/profile`** — there is no "now
+go and log in" step. If that follow-up login fails, the page falls back to
+`/login?created=1&email=…`, which `LoginPage` reads to prefill the address and show its
+`role="status"` notice. Both halves are easy to miss when changing either page, and anything
+driving the app after a sign-up starts already authenticated.
+
+`SessionStore` reads `localStorage` in a **field initialiser**, i.e. during construction. Two
+consequences: the class cannot be instantiated where there is no `localStorage` (so it is not
+SSR-safe as written), and a spec that touches it needs `localStorage.clear()` in `beforeEach` or
+state leaks between tests. It also deliberately registers no `storage` event listener, so logging
+out in one tab leaves the others logged in.
+
 ## Forms
 
 Signal forms, always. The API is marked `@experimental 21.x` in the installed typings — it can change
-in a minor, so keep the surface small and concentrated. Four things are not obvious from the reference
-page and were each verified against `node_modules/@angular/forms/types/`:
+in a minor, so keep the surface small and concentrated.
+
+**Render fields with `<app-text-field>`, never a bare `<input>`.** That component
+(`ui/text-field/`) is where the `<label for>`, `aria-describedby`, `aria-invalid`, hint and error
+markup are wired once and correctly:
+
+```html
+<app-text-field
+  [field]="f.email"
+  name="email"
+  label="Email address"
+  type="email"
+  autocomplete="email"
+/>
+```
+
+Note the input is `[field]`, not `[formField]` — `[formField]` is the Angular directive, and
+`app-text-field` is the only place in this project that uses it. Hand-rolling an `<input
+[formField]>` loses the accessible wiring, fails `make lint-accessibility`, and breaks the
+acceptance suite, which finds fields by walking `app-text-field` elements. `name`, `label` and
+`autocomplete` are required inputs; `name` doubles as the control `id`, and the `-hint` and
+`-error` ids derive from it.
+
+Four more things are not obvious from the reference page and were each verified against
+`node_modules/@angular/forms/types/`:
 
 - **`<form novalidate>` is mandatory.** The `[formField]` directive writes real `required`,
   `minlength`, `min`, `max` and `disabled` **DOM attributes**. Without `novalidate` the browser's own
@@ -292,7 +359,8 @@ page and were each verified against `node_modules/@angular/forms/types/`:
   error region never renders. **jsdom does not reproduce this** — unit tests stay green while the real
   page is broken. It is a browser-only failure, which makes it a `claude-in-chrome` review item.
 - **The directive selector is `[formField]`**, not `[field]`: `<input [formField]="f.email">`, and
-  `imports: [FormField]`.
+  `imports: [FormField]`. This matters when working _inside_ `app-text-field`; everywhere else you
+  are passing `[field]` to that component instead, per above.
 - **`f.email` is the structural field; `f.email()` is its state.** Flags live on the state:
   `f.email().touched()`, `f.email().errors()`. In templates too — `@if (f.email().invalid())`.
 - **Never `null` or `undefined` as an initial field value.** Use `''`, `0`, `[]`.
@@ -368,6 +436,7 @@ requirement, so the audit has to see real pixels. Don't try to move it into a un
 | `Dockerfile.a11y`            | the audit's image — the dev server's Node base plus Chromium                    |
 | `tsconfig.a11y.json`         | so the editor and `tsc` see these files; the root tsconfig is references-only   |
 | `a11y/report/`               | **generated**, gitignored; CI uploads it as the `accessibility-report` artifact |
+| `a11y/.output/`              | **generated**, gitignored; Playwright's per-test output (`outputDir`)           |
 
 `a11y/` sits beside `src/`, not inside it — same reasoning as `api/`: it is tooling, not something
 Angular compiles or serves. That also keeps it clear of the unit-test builder's spec discovery, so
@@ -415,6 +484,10 @@ second engine mostly re-proves the first. Chromium alone is the deliberate defau
 alternative text, `interactive-supports-focus`, …) and adds `no-positive-tabindex` and
 `button-has-type`. This catches in the editor what the audit would otherwise catch minutes later in
 a container.
+
+What it looks at is `angular.json`'s `lintFilePatterns`: `src/**/*.ts`, `src/**/*.html` **and
+`a11y/**/*.ts`**. The audit's own source is linted along with the app. The generated client is not,
+and is excluded on purpose — there is nothing to fix in code no one hand-edits.
 
 ### The part no tool checks
 
@@ -492,8 +565,12 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 - Use signals for state management
 - Implement lazy loading for feature routes
 - Do NOT use the `@HostBinding` and `@HostListener` decorators. Put host bindings inside the `host` object of the `@Component` or `@Directive` decorator instead
-- Use `NgOptimizedImage` for all static images.
+- Use `NgOptimizedImage` for all static images — should any arrive. The app currently renders no
+  `<img>` at all, so this is a rule for the first one, not a description of existing code.
   - `NgOptimizedImage` does not work for inline base64 images.
+- **The app is zoneless because Angular 21 defaults to it**, not because anything configures it.
+  There is no `provideZonelessChangeDetection()`, no `zone.js` dependency and no `polyfills` entry
+  in `angular.json`, and all three absences are correct. Don't "fix" them in either direction.
 
 ### Accessibility Requirements
 
@@ -514,7 +591,8 @@ what each layer covers, what neither can, and the route list you have to keep cu
   `angular-developer` skill mandates. Do NOT import `FormControl`, `FormGroup`, `FormArray` or
   `FormBuilder`; signal forms replace them and there is no builder. Read
   `.claude/skills/angular-developer/references/signal-forms.md` rather than working from memory.
-  See [Forms](#forms) below for the three traps that bite immediately.
+  See [Forms](#forms) below for the traps that bite immediately — and note that a form field is
+  rendered through `<app-text-field>`, not by hand.
 - Do NOT use `ngClass`, use `class` bindings instead
 - Do NOT use `ngStyle`, use `style` bindings instead
 - When using external templates/styles, use paths relative to the component TS file.
@@ -530,7 +608,10 @@ what each layer covers, what neither can, and the route list you have to keep cu
 
 - Keep templates simple and avoid complex logic
 - Use native control flow (`@if`, `@for`, `@switch`) instead of `*ngIf`, `*ngFor`, `*ngSwitch`
-- Use the async pipe to handle observables
+- **Bridge Observables into signals, not through the async pipe.** This project uses `toSignal` for
+  a stream it just reads (`app.ts`) and `rxResource` for a request whose loading and error states
+  the template needs (`profile-page.ts`) — which is what `orval.config.ts`'s `retrievalClient`
+  choice assumes. There is no `AsyncPipe` in the codebase; don't introduce the first one.
 - Do not assume globals like (`new Date()`) are available.
 
 ### Services
