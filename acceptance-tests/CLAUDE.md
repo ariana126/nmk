@@ -33,8 +33,9 @@ Start them with `make -C ../backend test-up` and `make -C ../frontend test-up`, 
 ## Which door a step goes through
 
 The suite is **blended** (BDD in Action, ch15): the browser where the browser is the point, HTTP
-everywhere else. Two of the seventeen examples drive the UI. That ratio is deliberate, not a
-staging post — ch10 puts UI tests at "a small minority" of an acceptance suite.
+everywhere else. Of its 24 examples, 17 are automated and 7 are pending; two of the automated ones
+drive the UI. That ratio is deliberate, not a staging post — ch10 puts UI tests at "a small
+minority" of an acceptance suite.
 
 | Scenario                     | Door                       | Why                                                                                                       |
 | ---------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------- |
@@ -43,6 +44,7 @@ staging post — ch10 puts UI tests at "a small minority" of an acceptance suite
 | Weak password (×6)           | **API**                    | ch10: proving a password rule through a form "would be wasteful"                                            |
 | Invalid email (×5)           | **API**                    | ch10's canonical waste case                                                                                 |
 | Missing data (×4)            | **API**                    | The form never submits an empty required field, so a UI version would document a *different* rule           |
+| Forgot password (×7)         | **neither, yet**           | Agreed by the business, not automated — the backend has no password reset. The voice rule picks their door when they are automated. See *Pending scenarios* |
 
 **Grammatical voice is the signal.** `Given Ariana already has an account` is passive — we care only
 *that* it is true, so it takes the API. `When he signs up` is active — we are demonstrating *how*,
@@ -124,13 +126,54 @@ they only work *inside* the container.
 needed: Playwright's types describe browser APIs. The reason is in a comment there; don't tidy it
 away.
 
-**`@wip`** marks scenarios written ahead of the backend. `npm test` excludes them. No scenario carries the tag today — the suite is fully green against the current backend, and it should stay that way (see *Assertion conventions*).
+### Pending scenarios, and what `@wip` actually means
+
+Two different things can be unfinished about a scenario, and they are marked differently. Getting
+this backwards either publishes a rule nobody signed off, or hides agreed behaviour from the
+documentation:
+
+| State | Marker | In the living documentation? |
+| ----- | ------ | ---------------------------- |
+| The **business** hasn't settled it — wording or the rule itself still under discussion | `@wip` | **No.** `npm test` filters it out with `--tags 'not @wip'`, deliberately: unagreed behaviour must not be published as a description of the system. |
+| Agreed by the business, **not automated yet** | **no tag**; step definitions that `return 'pending'` | **Yes**, as Pending. This is the default for specification written ahead of implementation. |
+| Agreed and automated | no tag; real step definitions | Yes, as Passing. |
+
+"Not automated yet" is **not** a reason to reach for `@wip`, and removing the tag is a business
+decision rather than an engineering one. No scenario carries `@wip` today.
+
+`specs/authentication/forgot-password.feature` is the worked example: untagged, its seven examples
+run every time, and `step-definitions/authentication/forgot-password.steps.ts` holds one
+placeholder per step text. The suite reports `Forgot Password: 7 pending, 7 total`, and the
+Serenity report files them under **Requirements → Authentication → Forgot password**, marked
+Pending, with their Gherkin visible. Replace each placeholder with a real
+`actor.attemptsTo(...)` delegation as the tasks appear.
+
+Three things to know when writing placeholders:
+
+- **`strict: false` in `cucumber.cjs` is what keeps the run green.** Cucumber fails on an
+  `UNDEFINED` step *unconditionally* — only `PENDING` is governed by `strict`. So a *missing* step
+  definition still breaks the build, as do ambiguous and failing ones; nothing but an explicit
+  `return 'pending'` is tolerated. **Watch the exit code, not the summary**: Serenity maps
+  `UNDEFINED` and `PENDING` to the same `ImplementationPending` outcome, so a forgotten definition
+  still prints as "pending" in the console summary and in the report. Only the non-zero exit
+  distinguishes it.
+- **Don't redefine a step another feature already implements.** A second definition is ambiguous,
+  which fails whatever `strict` says. `Given {actor} already has an account` is the Background of
+  every forgot-password scenario and is implemented in `../registration/sign-up.steps.ts` — so it
+  really does hit the backend before the pending step. Worst result wins, so the scenario is still
+  Pending; those seven examples just aren't free.
+- **Arity must match the captured parameters**, or Cucumber rejects the definition. Name the unused
+  ones `_actor`, `_password` — ESLint's `argsIgnorePattern` is `^_`.
 
 ## Architecture
 
 ```
-specs/registration/sign-up.feature      # Gherkin. Organised by feature area, not by backend module
-step-definitions/registration/sign-up.steps.ts   # Thin: each step just delegates to a task
+specs/                                  # Gherkin. Organised by feature area, not by backend module
+├── registration/sign-up.feature
+└── authentication/forgot-password.feature       # Agreed, not automated — see Pending scenarios
+step-definitions/                       # Thin: each step just delegates to a task
+├── registration/sign-up.steps.ts
+└── authentication/forgot-password.steps.ts      # Placeholders returning 'pending'
 screenplay/                             # DOMAIN layer: what an actor does, in business language
 ├── common/                             # Reusable across feature areas
 │   ├── clock.ts                        # FreezeTimeAt, LetTimePass — written, but NOT wired up yet
@@ -256,7 +299,7 @@ and hardcoded again in the backend, with nothing keeping the two in step.
 
 **Assert `type`, not `detail`.** `type` is always present and is the diagnostic field; `detail` is optional per RFC 9457.
 
-**Assert the API as it is built, not as you wish it were.** The backend reports weak password, invalid email and missing data as the *same* `400` problem type (`validation-error`), distinguished only by which field appears in the `errors[]` array — hence `EnsureValidationErrorFor(field)`. Do not assert problem types the backend does not emit; that turns a green suite into a parked `@wip` one. Only duplicate email has a dedicated type (`409 user-already-exists`).
+**Assert the API as it is built, not as you wish it were.** The backend reports weak password, invalid email and missing data as the *same* `400` problem type (`validation-error`), distinguished only by which field appears in the `errors[]` array — hence `EnsureValidationErrorFor(field)`. Do not assert problem types the backend does not emit; that turns a passing scenario into a parked pending one. Only duplicate email has a dedicated type (`409 user-already-exists`).
 
 **Through the UI, assert what the visitor sees.** The same discipline, one door over: a UI step
 asserts the rendered message, the page it stayed on, whether the header offers "Log out". It never

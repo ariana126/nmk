@@ -128,12 +128,19 @@ step now fails the run rather than merely covering less. `test-up` rather than `
 that browser at the same backend the suite truncates between scenarios, instead of at the
 developer's dev stack.
 
-The suite is **blended**: two of its seventeen examples drive the UI — the sign-up journey and the
-duplicate-email rejection — and the remaining fifteen stay black-box HTTP against the backend. That
-split follows _BDD in Action_ ch10's four reasons to write a UI test, and the feature file itself
-knows nothing about it: each step's grammatical voice decides which door it goes through, so there
-are no `@ui`/`@api` tags to keep in sync. `acceptance-tests/CLAUDE.md` has the table and the
-reasoning; change the ratio there, deliberately, not by drift.
+The suite is **blended**: of its seventeen automated examples two drive the UI — the sign-up journey
+and the duplicate-email rejection — and the remaining fifteen stay black-box HTTP against the
+backend. That split follows _BDD in Action_ ch10's four reasons to write a UI test, and the feature
+file itself knows nothing about it: each step's grammatical voice decides which door it goes
+through, so there are no `@ui`/`@api` tags to keep in sync. `acceptance-tests/CLAUDE.md` has the
+table and the reasoning; change the ratio there, deliberately, not by drift.
+
+A further seven examples are **pending** — Gherkin the business has agreed that the backend cannot
+yet satisfy. They are untagged and they run: their step definitions `return 'pending'`, which
+`strict: false` in `cucumber.cjs` keeps out of the failure statuses, so CI stays green *and* the
+living documentation still carries them, marked Pending. That is the whole point of writing them
+early, and it is not what `@wip` is for — that tag means the business hasn't settled the scenario,
+and excludes it from the run and from the documentation. `acceptance-tests/CLAUDE.md` has the table.
 
 What makes the frontend drivable is its markup: a `<label for>` on every input, a real
 `<button type="submit">`, no `div` click targets. The suite locates elements **by label text**
