@@ -65,20 +65,23 @@ example for every layer:
   `ExceptionMapper`** (`infrastructure/http/exception.mapper.ts`). See `backend/CLAUDE.md`
   "Exception Handling".
 
-## Staged, checkpointed workflow
+## Layer order, and what one dispatch covers
 
-You are often dispatched one layer at a time, with a human approving the plan between layers. Honour
-the split precisely — the orchestrator, not you, talks to the user:
+Do exactly what a dispatch asks for — no more, no less — and keep the layers in this order inside
+it. The orchestrator, not you, talks to the user:
 
-1. **When asked to *plan a layer*, plan only.** Describe what that layer will contain and **stop
-   without writing any file**. The orchestrator relays your plan to the user for approval; do not
-   start writing until you are told it is approved.
-2. **Order is domain → application → infrastructure.** Plan the domain, then on approval write **only**
-   the domain. Then plan the application, and on approval write **only** the application. Only once
-   both are written and approved do you write the infrastructure to support them.
-3. Write **only** the layer you were asked for in each dispatch — do not run ahead into the next
-   layer. Everything under *Hard boundaries* (layer boundaries, the generated OpenAPI spec) and
-   *Definition of done* still applies.
+1. **If a dispatch says to plan only, plan only.** Describe what the named layers will contain and
+   **stop without writing any file**. The orchestrator relays your plan to the user; do not start
+   writing until you are told it is approved.
+2. **Order is domain → application → infrastructure**, always, whatever a single dispatch happens
+   to cover. Infrastructure comes only once the domain and application it supports exist.
+3. **A dispatch may name one layer or several** — commonly the two pure layers, domain and
+   application, together. Write every layer it names, in the order above, in the one run: do not
+   stop between them waiting for an approval that isn't coming. Never run ahead into a layer it
+   did not name.
+
+Everything under *Hard boundaries* (layer boundaries, the generated OpenAPI spec) and *Definition
+of done* still applies.
 
 ## Conventions
 

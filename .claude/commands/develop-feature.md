@@ -1,132 +1,143 @@
 ---
-description: Develop a new feature outside-in — QA writes acceptance tests from the Gherkin, then backend and frontend implement to green, with a user checkpoint at each architectural layer.
-argument-hint: <feature-file-or-area>
+description: Develop a feature outside-in — plan the slice, QA automates the Gherkin, backend and frontend implement to green. Normal mode checkpoints the plan and the backend's pure layers; --auto never stops and pushes the commit.
+argument-hint: <feature-file> [--auto] [notes]
 ---
 
-You are orchestrating an outside-in feature workflow across three subagents:
-`qa-engineer` (owns `acceptance-tests/`), `backend-engineer` (owns `backend/`)
-and `frontend-engineer` (owns `frontend/`). The Gherkin already exists; the goal
-is executable acceptance tests, a passing backend implementation, the UI those
-tests drive, green guardrails, and a reviewed commit.
+You orchestrate an outside-in feature workflow across three subagents: `qa-engineer`
+(owns `acceptance-tests/`), `backend-engineer` (owns `backend/`) and `frontend-engineer`
+(owns `frontend/`). The Gherkin already exists; the goal is executable acceptance tests, a
+passing implementation, the UI those tests drive, green guardrails, and a commit.
 
-## How this orchestration works (read first)
+## How this works (read first)
 
-- **You are the only one who talks to the user.** Subagents run autonomously and
-  cannot pause for approval mid-run — so the "plan → check with user → write"
-  checkpoints are *yours* to own, not theirs.
-- **Dispatch each agent to plan a layer, then resume it to write.** Launch an
-  agent to produce a plan **foreground** (`run_in_background: false`) so you have
-  the plan in hand. Relay it to the user. On approval, **resume the same agent
-  with `SendMessage`** (its context stays intact) to write that one layer. Never
-  start a fresh `Agent` call for the write step — that throws away the plan's
-  context.
-- **Terminology.** "Business Flow" = the Specification + Domain layers of the
-  screenplay model (step-definitions delegating to named, *stubbed* business
-  tasks/questions). "Technical layer" = the Integration layer (abilities, HTTP
-  interactions, test data). "UI slice" = the frontend's `core/` layer (gateway +
-  session state) plus its `features/` + `ui/` layer (routed page +
-  presentational components). The agents map these explicitly.
-- **Never cross project boundaries.** `qa-engineer` never edits backend code or
-  `.feature` files; `backend-engineer` never references `acceptance-tests/`;
-  `frontend-engineer` works only inside `frontend/`, never references `backend/`
-  or `acceptance-tests/`, and never hand-edits the generated API client.
+- **You are the only one who talks to the user.** Subagents run autonomously and cannot pause
+  for approval, so every stop below is yours to own, not theirs.
+- **One agent per project, resumed with `SendMessage`.** Dispatch each agent once with
+  `Agent(run_in_background: false)`; every later instruction to it goes through `SendMessage`
+  so its context survives. Never open a second `Agent` call for a project you already
+  dispatched — that throws away everything it has built up.
+- **Don't make an agent re-derive what you already know.** Step 1 produces the high-level plan;
+  every dispatch below quotes the slice of it that agent needs — the scenario names, the
+  behaviour, the decisions already made, the user's notes. No agent should be re-opening the
+  Gherkin to work out the scope. They still read their own project's CLAUDE.md and invoke their
+  own skills; that is their job, not redundancy.
+- **Terminology.** "Business Flow" = the Specification + Domain layers of the screenplay model
+  (step-definitions delegating to named business tasks/questions). "Technical layer" = the
+  Integration layer (abilities, HTTP interactions, test data). "UI slice" = the frontend's
+  `core/` layer (gateway + session state) plus its `features/` + `ui/` layer (routed page +
+  presentational components).
+- **Never cross project boundaries.** `qa-engineer` never edits backend code or `.feature`
+  files; `backend-engineer` never references `acceptance-tests/`; `frontend-engineer` stays
+  inside `frontend/` and never hand-edits the generated API client.
+
+## Arguments and modes
+
+`$1` is the `.feature` file or area. In the rest of `$ARGUMENTS`:
+
+- **`--auto`**, anywhere, selects auto mode. Strip it before relaying anything.
+- **Everything else is optional free-form notes** — a constraint or concern to honour, e.g.
+  `/develop-feature specs/sign-up.feature --auto consider race conditions on duplicate email`.
+  Relay them verbatim into every dispatch on a `User notes:` line; omit the line when empty.
+
+**Normal mode** (the default) stops four times: the step-1 plan, the UI-surface question when
+the Gherkin is ambiguous, the backend pure-layers checkpoint, and the commit.
+
+**Auto mode stops for nothing.** At each of those four points, decide and keep going:
+
+| Stop | What auto does instead |
+|---|---|
+| Step 1 plan | State the plan, proceed straight to step 2. |
+| UI surface | A UI-voiced scenario means build the UI; none means API-only. Report which. |
+| Backend pure layers | One dispatch that plans **and** writes them, no plan relay. |
+| Commit | Stage and commit without confirming, then **push**. |
+
+The one thing auto mode still stops for is an empty `$1` — there is no feature to develop, and
+guessing one is worse than asking. Step 6's failure cap applies in both modes.
 
 ## Steps
 
-### 1. Guard and read the Gherkin
-- If `$ARGUMENTS` is empty, stop and ask the user which `.feature` file/area to
-  develop. Do not guess.
-- Read the target `.feature` under `acceptance-tests/specs/` to understand the
-  scenarios and scope. **Do not edit it** — it is read-only input authored by the
-  team.
+### 1. Understand the feature and plan the slice  *(normal: checkpoint)*
+- If `$1` is empty, stop and ask which `.feature` file or area to develop. Do not guess.
+- Read the target `.feature` under `acceptance-tests/specs/`. **Do not edit it** — it is
+  read-only input authored by the team.
+- Get only the grounding the decisions below need: at most the root `CLAUDE.md` and one
+  module's. Do not survey the codebase — the owning agents do that inside their own projects.
+- Write the **high-level plan**, short and in prose:
+  - the business capability in a sentence, and the scenario names, marking which are
+    **UI-voiced**;
+  - the vertical slice: what QA automates, what the backend's pure layers must model, the HTTP
+    surface it implies, the UI scope;
+  - the decisions that are expensive to reverse once three agents have built on them — a new
+    module or a behaviour on an existing aggregate, the endpoints and their problem types,
+    sync or async, what the read model looks like;
+  - the risks, and how the user's notes constrain any of the above.
+- If no scenario is UI-voiced, resolve the UI surface: **normal mode**, ask the user — a missing
+  frontend is more often an oversight than an intent; **auto mode**, call it API-only. Either
+  way it is settled here, and step 5 acts on it without asking again.
+- **Normal mode: get the plan approved before dispatching anyone.** Auto mode: state it and go.
 
-### 2. QA — Business Flow  *(checkpoint 1)*
-- `Agent(qa-engineer, run_in_background: false)`: "Plan the **Business Flow**
-  (Specification + Domain) for `$ARGUMENTS`: the step→task mapping and the
-  task/question vocabulary, with tasks stubbed. Output the plan only — do NOT
-  write any files yet."
-- Present the returned plan to the user; incorporate their edits/approval.
-- `SendMessage` to that same qa-engineer: "Approved. Write the Business Flow now
-  — the step-definitions plus the stubbed business tasks/questions."
+### 2. QA — Business Flow and Technical layer
+One dispatch, no stop in either mode. `Agent(qa-engineer, run_in_background: false)`:
 
-### 3. QA — Technical layer
-- `SendMessage` to the same qa-engineer: "Now write the **Technical**
-  (Integration) layer — abilities, interactions, and test data — so the stubbed
-  tasks execute. Typecheck clean. The suite may be red because the backend isn't
-  implemented yet, or `@wip` per your rules — that's expected." *(No user
-  checkpoint here.)*
+> Automate <scenario names> from `<path>`. <The behaviour, and the API surface from the plan.>
+> First the **Business Flow** (Specification + Domain): the step→task mapping and the
+> task/question vocabulary. Then the **Technical** (Integration) layer — abilities,
+> interactions, test data — so those tasks execute. Typecheck clean. The suite will be red
+> until the backend exists, or `@wip` per your rules; that is expected. <User notes: …>
 
-### 4. Backend — Domain  *(checkpoint 2)*
-- Fresh `Agent(backend-engineer, run_in_background: false)`: "Plan the **domain
-  layer only** for the feature described by `$ARGUMENTS` (aggregate, value
-  objects, domain events, port interfaces). Output the plan only — do NOT write."
-- Present to the user; get approval/edits.
-- `SendMessage`: "Approved. Write ONLY the domain layer."
+### 3. Backend — domain + application  *(normal: checkpoint)*
+- **Normal mode.** `Agent(backend-engineer, run_in_background: false)`: "Plan the **pure
+  layers** for <scenario names> — <the behaviour and the decisions from the step-1 plan>.
+  Domain: aggregate, value objects, domain events, port interfaces. Application: command/query
+  handlers, read models, application exceptions. Output the plan only — do NOT write.
+  <User notes: …>" Relay it to the user, take their edits, then `SendMessage`: "Approved. Write
+  the domain and application layers. <their edits>"
+- **Auto mode.** The same dispatch, one message, ending "…Then write them." — no plan relay.
 
-### 5. Backend — Application  *(checkpoint 3)*
-- `SendMessage` to the same backend-engineer: "Plan the **application layer
-  only** (command/query handlers, read models, application exceptions). Output
-  the plan only — do NOT write."
-- Present to the user; get approval/edits.
-- `SendMessage`: "Approved. Write ONLY the application layer."
+### 4. Backend — infrastructure
+- `SendMessage` to the same agent: "Write the **infrastructure** layer to support the domain +
+  application you just wrote — controllers + DTOs, repositories + mappers, exception mapper.
+  Regenerate the OpenAPI spec if the HTTP surface changed."
 
-### 6. Backend — Infrastructure
-- `SendMessage` to the same backend-engineer: "Write the **infrastructure**
-  layer to support the approved domain + application — controllers + DTOs,
-  repositories + mappers, exception mapper. Regenerate the OpenAPI spec if the
-  HTTP surface changed." *(No user checkpoint here.)*
+### 5. Frontend — UI slice
+- Skip this step if step 1 settled that the feature is API-only, and say so in your report.
+- **Sync the contract yourself first**: `make sync-api-contract` from the repo root. The backend
+  just regenerated `backend/docs/openapi.json` and the frontend generates its client from its
+  own copy. Do not delegate — only the root may name both projects.
+- One dispatch, no stop in either mode. `Agent(frontend-engineer, run_in_background: false)`:
 
-### 7. Frontend — UI slice  *(checkpoint 4)*
-- **First, sync the contract yourself**: run `make sync-api-contract` from the
-  repo root. The backend step just regenerated `backend/docs/openapi.json`, and
-  the frontend generates its client from its own copy. Do not delegate this —
-  only the root may name both projects.
-- **If no scenario in `$ARGUMENTS` is UI-voiced**, ask the user whether this
-  feature has a UI surface before dispatching. Do not silently skip — a missing
-  frontend is more often an oversight than an intent. If they say it is
-  API-only, go to step 8 and say so in your report.
-- Fresh `Agent(frontend-engineer, run_in_background: false)`: "Plan the **UI
-  slice** for the feature described by `$ARGUMENTS`: the `core/` layer (gateway
-  methods, state) and the `features/` + `ui/` layer (routes, page components,
-  form model, error/empty/loading states, navigation, and the
-  `a11y/accessibility.spec.ts` route-list additions). Output the plan only — do
-  NOT write."
-- Present to the user; get approval/edits.
-- `SendMessage`: "Approved. Write ONLY the `core/` layer — gateway and state,
-  with co-located specs."
-- `SendMessage`: "Now write the **`features/` + `ui/`** layer — routes, page
-  components, templates and presentational components — and register every new
-  route in `a11y/accessibility.spec.ts`. Then run the browser pass on the
-  rendered page." *(No user checkpoint here.)*
+  > Build the **UI slice** for <scenario names> — <the behaviour and UI scope from the plan>.
+  > The `core/` layer (gateway methods, state) and the `features/` + `ui/` layer (routes, page
+  > components, form model, error/empty/loading states, navigation), with co-located specs.
+  > Register every new route in `a11y/accessibility.spec.ts`, then run the browser pass on the
+  > rendered page. <User notes: …>
 
-### 8. Green the acceptance suite
-- Run `make run-acceptance-tests` from the repo root. The suite is **blended**:
-  some examples drive a real browser at the frontend test stack on 4201, so a UI
-  failure is as likely as an API one.
-- If red, triage each failure and route it: an **automation bug** goes back to
-  `qa-engineer`; a **backend gap** goes back to `backend-engineer`; a **UI gap**
-  goes back to `frontend-engineer` (resume the relevant agent with
-  `SendMessage`). Loop until the suite is green.
-- `make down` once the suite is green.
+### 6. Guardrails
+- Run `make fix-violations` to converge auto-fixable issues, then `make run-guardrails` — the
+  local mirror of the eight CI jobs. **Do not run `make run-acceptance-tests` separately**:
+  `run-guardrails` ends with it, and the blended suite is the most expensive thing here.
+- Report the **actual** output; never claim a pass you didn't run.
+- Route each failure to its owner by `SendMessage` — an **automation bug** to `qa-engineer`, a
+  **backend gap** to `backend-engineer`, a **UI gap** to `frontend-engineer` — and re-run until
+  clean. The suite is blended: some examples drive a real browser at the frontend test stack on
+  4201, so an acceptance failure is as likely to be a UI one as an HTTP one.
+- **If one failure survives three routed fixes, stop and report it** with the output, in both
+  modes. Three agents taking turns at a wall is not progress.
+- `make down` once green.
 
-### 9. Guardrails
-- Run `make fix-violations` to converge auto-fixable issues, then
-  `make run-guardrails` — the local mirror of the eight CI jobs.
-- Report the **actual** output; never claim a pass you didn't run. Fix any
-  failure (via the owning agent) and re-run until clean. `make down` after.
+### 7. Review and refactor
+- Review the full diff of every touched project. The owning agents already applied their own
+  skills — `handbook:screenplay-guideline`, `handbook:oop-guideline` /
+  `handbook:architecture-guideline` / `handbook:test-guideline`, `angular-developer` /
+  `frontend-design:frontend-design` — so you don't invoke them.
+- Apply improving refactors through the owning agent. Re-run `make run-guardrails` **only if
+  you changed something**, then `make down`.
 
-### 10. Review and refactor
-- Review the full diff of every touched project against its skills —
-  `handbook:screenplay-guideline` for `acceptance-tests/`; `handbook:oop-guideline` /
-  `handbook:architecture-guideline` / `handbook:test-guideline` for `backend/`; and
-  `angular-developer` / `handbook:oop-guideline` / `handbook:test-guideline` /
-  `frontend-design:frontend-design` for `frontend/` (the owning subagents invoke
-  these; you don't). Apply improving refactors through the owning agent, then
-  re-run `make run-guardrails` to confirm nothing regressed.
-
-### 11. Commit  *(draft → confirm)*
+### 8. Commit
 - `git status` and `git diff` to review what will be committed.
-- Stage the changes and propose a Conventional Commit message. Show the message
-  to the user and commit **only after they confirm**.
-- End the commit message with:
+- Stage the changes and write a Conventional Commit message, ending with:
   `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`
+- **Normal mode:** show the message to the user and commit **only after they confirm**. Do not
+  push — that is theirs to do.
+- **Auto mode:** commit, then `git push` on whatever branch is checked out, `main` included
+  (`-u origin <branch>` if it has no upstream). Report the branch and the commit you pushed.

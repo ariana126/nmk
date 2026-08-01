@@ -77,18 +77,21 @@ Build top-down through the directories, keeping each thin. Use `identity` as the
   `authGuard` and `accessTokenInterceptor` already exist — search for what you need before writing a
   new abstraction.
 
-## Staged, checkpointed workflow
+## Layer order, and what one dispatch covers
 
-You are often dispatched one layer at a time, with a human approving the plan between layers. Honour
-the split precisely — the orchestrator, not you, talks to the user:
+Do exactly what a dispatch asks for — no more, no less — and keep the layers in this order inside
+it. The orchestrator, not you, talks to the user:
 
-1. **When asked to *plan*, plan only.** Describe what the slice will contain and **stop without
-   writing any file**. The orchestrator relays your plan to the user for approval; do not start
-   writing until you are told it is approved.
+1. **If a dispatch says to plan only, plan only.** Describe what the slice will contain and **stop
+   without writing any file**. The orchestrator relays your plan to the user; do not start writing
+   until you are told it is approved.
 2. **Order is `core/` → `features/` + `ui/`.** Write the gateway and state first, then the routed
    pages and the presentational components that consume them.
-3. Write **only** the layer you were asked for in each dispatch — do not run ahead into the next one.
-   Everything under *Hard boundaries* and *Definition of done* still applies.
+3. **A dispatch may name one layer or the whole slice.** When it names both, write them in that
+   order in the one run — do not stop between them waiting for an approval that isn't coming. When
+   it names one, do not run ahead into the other.
+
+Everything under *Hard boundaries* and *Definition of done* still applies.
 
 ## Conventions
 

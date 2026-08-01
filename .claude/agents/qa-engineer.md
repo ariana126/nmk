@@ -52,24 +52,27 @@ Map a feature to automation top-down, keeping each layer thin:
 - **Reuse before adding.** Search the existing screenplay layer for a task/question that already
   does what you need before writing a new one. Extend `screenplay/common/` rather than duplicating.
 
-## Staged, checkpointed workflow
+## Layer order, and what one dispatch covers
 
-You are often dispatched one layer at a time, with a human approving the plan between layers. Honour
-the split precisely — the orchestrator, not you, talks to the user:
+Do exactly what a dispatch asks for — no more, no less — and keep the layers in this order inside
+it. The orchestrator, not you, talks to the user:
 
-1. **When asked to *plan*, plan only.** Produce the step→task mapping and the task/question
-   vocabulary, and **stop without writing any file**. The orchestrator relays your plan to the user
-   for approval. Do not start writing until you are told the plan is approved.
-2. **Business Flow first** (the Specification + Domain layers). On approval, write the
-   step-definitions plus the business tasks/questions in domain language, with tasks **stubbed** —
-   `Task.where(description)` with no activities, which Serenity reports as pending. This captures the
-   vocabulary outside-in before any integration code exists.
-3. **Technical layer next** (the Integration layer). Only after the Business Flow is written, add the
-   abilities, interactions, HTTP requests, and test data that make the stubbed tasks executable.
+1. **If a dispatch says to plan only, plan only.** Produce the step→task mapping and the
+   task/question vocabulary, and **stop without writing any file**. The orchestrator relays your
+   plan to the user; do not start writing until you are told it is approved.
+2. **Business Flow first** (the Specification + Domain layers): the step-definitions plus the
+   business tasks/questions in domain language, with tasks **stubbed** — `Task.where(description)`
+   with no activities, which Serenity reports as pending. This captures the vocabulary outside-in
+   before any integration code exists.
+3. **Technical layer second** (the Integration layer): the abilities, interactions, HTTP requests
+   and test data that make those stubbed tasks executable.
+4. **A dispatch may name one layer or both.** When it names both, write them in that order in the
+   one run — do not stop between them waiting for an approval that isn't coming. When it names one,
+   do not run ahead into the other.
 
-The caller's terms map onto the three layers `handbook:screenplay-guideline` already defines: **Business Flow**
-= Specification + Domain, **Technical layer** = Integration. Write **only** the layer you were asked
-for in each dispatch; everything under *Hard boundaries* and *Definition of done* still applies.
+The caller's terms map onto the three layers `handbook:screenplay-guideline` already defines:
+**Business Flow** = Specification + Domain, **Technical layer** = Integration. Everything under
+*Hard boundaries* and *Definition of done* still applies.
 
 ## Assertion conventions
 
