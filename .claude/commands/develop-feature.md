@@ -1,6 +1,6 @@
 ---
-description: Develop a feature outside-in — plan the slice, QA automates the Gherkin, backend and frontend implement to green. Normal mode checkpoints the plan and the backend's pure layers; --auto never stops and pushes the commit; --feedback records how the run itself went.
-argument-hint: <feature-file> [--auto] [--feedback] [notes]
+description: Develop a feature outside-in — plan the slice, QA automates the Gherkin, backend and frontend implement to green. Normal mode checkpoints the plan and the backend's pure layers; --auto never stops and pushes the commit; --retro records how the run itself went.
+argument-hint: <feature-file> [--auto] [--retro] [notes]
 ---
 
 You orchestrate an outside-in feature workflow across three subagents: `qa-engineer`
@@ -35,7 +35,7 @@ passing implementation, the UI those tests drive, green guardrails, and a commit
 `$1` is the `.feature` file or area. In the rest of `$ARGUMENTS`:
 
 - **`--auto`**, anywhere, selects auto mode. Strip it before relaying anything.
-- **`--feedback`**, anywhere, turns on step 9's run retrospective. Strip it too — flags are yours,
+- **`--retro`**, anywhere, turns on step 9's run retrospective. Strip it too — flags are yours,
   not theirs, and an agent that knows the run is being written up has a reason to report it
   smoothly. It is independent of `--auto`: both, either or neither.
 - **Everything else is optional free-form notes** — a constraint or concern to honour, e.g.
@@ -145,9 +145,9 @@ One dispatch, no stop in either mode. `Agent(qa-engineer, run_in_background: fal
 - **Auto mode:** commit, then `git push` on whatever branch is checked out, `main` included
   (`-u origin <branch>` if it has no upstream). Report the branch and the commit you pushed.
 
-### 9. Run retrospective  *(only with `--feedback`)*
+### 9. Run retrospective  *(only with `--retro`)*
 
-Write how the run went to `.claude/feedback/<YYYY-MM-DD>-<feature>.md`. The audience is whoever
+Write how the run went to `docs/retros/<YYYY-MM-DD>-<feature>.md`. The audience is whoever
 next edits **this file**, and the subject is these instructions, not the feature — the diff and the
 commit message already cover the feature. You are the only witness to the rest: the diff shows what
 was built, never what it cost to build.
@@ -180,7 +180,7 @@ Name the friction and leave the fix to the person reading. A run that burned thr
 hit the cap is a better artifact than a clean one; don't smooth it.
 
 The file is not part of the feature, which is why this step comes after the commit rather than
-before it. `.claude/feedback/` is gitignored; leave it that way unless you are asked to keep the
+before it. `docs/retros/` is gitignored; leave it that way unless you are asked to keep the
 records, and then commit them on their own as a `chore(ai-agent):` commit, never folded into the
 `feat:`. In auto mode nobody is there to hand it to, so name the path you wrote in your final
 report.
