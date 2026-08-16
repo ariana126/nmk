@@ -1,6 +1,6 @@
 ---
-description: Develop a feature outside-in — plan the slice, QA automates the Gherkin, backend and frontend implement to green. Normal mode checkpoints the plan and the backend's pure layers; --auto never stops and pushes the commit.
-argument-hint: <feature-file> [--auto] [notes]
+description: Develop a feature outside-in — plan the slice, QA automates the Gherkin, backend and frontend implement to green. Normal mode checkpoints the plan and the backend's pure layers; --auto never stops and pushes the commit; --feedback records how the run itself went.
+argument-hint: <feature-file> [--auto] [--feedback] [notes]
 ---
 
 You orchestrate an outside-in feature workflow across three subagents: `qa-engineer`
@@ -35,6 +35,9 @@ passing implementation, the UI those tests drive, green guardrails, and a commit
 `$1` is the `.feature` file or area. In the rest of `$ARGUMENTS`:
 
 - **`--auto`**, anywhere, selects auto mode. Strip it before relaying anything.
+- **`--feedback`**, anywhere, turns on step 9's run retrospective. Strip it too — flags are yours,
+  not theirs, and an agent that knows the run is being written up has a reason to report it
+  smoothly. It is independent of `--auto`: both, either or neither.
 - **Everything else is optional free-form notes** — a constraint or concern to honour, e.g.
   `/develop-feature specs/sign-up.feature --auto consider race conditions on duplicate email`.
   Relay them verbatim into every dispatch on a `User notes:` line; omit the line when empty.
@@ -141,3 +144,43 @@ One dispatch, no stop in either mode. `Agent(qa-engineer, run_in_background: fal
   push — that is theirs to do.
 - **Auto mode:** commit, then `git push` on whatever branch is checked out, `main` included
   (`-u origin <branch>` if it has no upstream). Report the branch and the commit you pushed.
+
+### 9. Run retrospective  *(only with `--feedback`)*
+
+Write how the run went to `.claude/feedback/<YYYY-MM-DD>-<feature>.md`. The audience is whoever
+next edits **this file**, and the subject is these instructions, not the feature — the diff and the
+commit message already cover the feature. You are the only witness to the rest: the diff shows what
+was built, never what it cost to build.
+
+Because you read this step before step 1, you have known all along that you would be writing it.
+Draw on what you actually saw at the time rather than reconstructing a tidy account from the final
+state — a plan that was wrong in step 3 and quietly corrected in step 6 leaves no trace in the diff
+at all.
+
+Record:
+
+- **The shape of the run** — steps run and steps skipped with the reason; the checkpoints you
+  stopped at, or what auto mode decided instead; how many dispatches and `SendMessage`s each agent
+  took.
+- **Where the step-1 plan was wrong.** This is the most valuable section. That plan commits three
+  agents to endpoints, problem types and a read model before anyone has written a line, so every
+  divergence marks a decision the planning step asked you to make too early or with too little.
+  Quote what the plan claimed and what turned out to be true.
+- **Guardrails.** Each `run-guardrails` round: the check that failed, who you routed it to, whether
+  the fix landed. Whether the first pass was green is the single number worth comparing across runs.
+- **Friction.** Anything you had to re-explain, a boundary an agent crossed, a dispatch that would
+  have gone better worded differently. Name the section of this file each one belongs to — that is
+  what makes the retrospective actionable instead of merely true.
+- **Cost** — roughly where the wall-clock went and which step dominated.
+
+Two habits to resist. **Don't grade the run.** "It went well" is not evidence, nobody can act on
+it, and self-assessment drifts generous in exactly the cases worth catching. **Don't rewrite this
+file here either** — a retrospective that argues for its own conclusion has stopped being a record.
+Name the friction and leave the fix to the person reading. A run that burned three routed fixes and
+hit the cap is a better artifact than a clean one; don't smooth it.
+
+The file is not part of the feature, which is why this step comes after the commit rather than
+before it. `.claude/feedback/` is gitignored; leave it that way unless you are asked to keep the
+records, and then commit them on their own as a `chore(ai-agent):` commit, never folded into the
+`feat:`. In auto mode nobody is there to hand it to, so name the path you wrote in your final
+report.
