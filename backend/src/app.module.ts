@@ -1,6 +1,7 @@
 import {
   AuthModule,
   ClockModule,
+  EmailModule,
   HealthModule,
   PrismaModule,
   TestingModule,
@@ -39,6 +40,7 @@ import { LoggerModule } from 'nestjs-pino';
     }),
     AuthModule,
     ClockModule,
+    EmailModule,
     PrismaModule,
     HealthModule,
     ...(process.env.NODE_ENV === 'test' ? [TestingModule] : []),

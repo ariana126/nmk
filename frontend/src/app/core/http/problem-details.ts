@@ -12,6 +12,20 @@ export const PROBLEM = {
   userAlreadyExists: 'https://my-api-doc.dev/problems/user-already-exists',
   invalidCredentials: 'https://my-api-doc.dev/problems/invalid-credentials',
   entityNotFound: 'https://my-api-doc.dev/problems/entity-not-found',
+  /** `POST /api/password-resets` — nobody is registered with that address. */
+  userNotFound: 'https://my-api-doc.dev/problems/user-not-found',
+  /** `PUT /api/password-resets/{token}/password` — the link matches no reset on record. */
+  passwordResetNotFound: 'https://my-api-doc.dev/problems/password-reset-not-found',
+  /** The reset's window has closed. */
+  passwordResetExpired: 'https://my-api-doc.dev/problems/password-reset-expired',
+  /**
+   * The reset was already spent on a password change.
+   *
+   * This one shares its 410 with `passwordResetExpired`, and OpenAPI can only carry one example
+   * per status, so `api/openapi.json` documents the expired case alone. The type is real and the
+   * API emits it; this constant is the client's own vocabulary, not a projection of the spec.
+   */
+  passwordResetAlreadyUsed: 'https://my-api-doc.dev/problems/password-reset-already-used',
 } as const;
 
 /** One entry of a validation error's `errors` array. `field` matches the DTO property name. */

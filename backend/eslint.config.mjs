@@ -27,6 +27,19 @@ export default tseslint.config(
     files: ['**/*.spec.ts'],
   },
   {
+    files: ['**/*.spec.ts'],
+    rules: {
+      // The rule fires on any identifier containing "password" that is assigned a string
+      // literal, which is exactly what a spec covering password handling is made of: fake
+      // hashes (`hashed-original-password`), fake digests, and the `passwordResetToken` /
+      // `passwordReset*` keys asserted against the persistence record. That last group cannot
+      // be renamed away — they are Prisma column names, not variables the test chose. None of
+      // the hits is a real credential, and no spec ships. Scoped to `**/*.spec.ts` on purpose:
+      // a hardcoded password in production code is still an error.
+      'sonarjs/no-hardcoded-passwords': 'off',
+    },
+  },
+  {
     plugins: {
       'simple-import-sort': simpleImportSort,
       'unused-imports': unusedImports,

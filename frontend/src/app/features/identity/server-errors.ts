@@ -66,6 +66,34 @@ export function toSubmissionErrors(
       // tells an attacker which addresses are registered.
       return [formError('Email or password is incorrect.')];
 
+    case PROBLEM.userNotFound:
+      // The mirror image of `userAlreadyExists`: a 404 with the address in its own member, and the
+      // email field is the only thing the visitor can change to fix it.
+      return [
+        fieldError(
+          'There is no account with this email address. Check the spelling, or sign up instead.',
+          targets['email'],
+        ),
+      ];
+
+    // The three below all say the same structural thing — the *link* is unusable, not the password
+    // that was typed — so they belong on the form root and not under the password field. Sending
+    // someone back to re-type a password that would fail again for the same reason is worse than
+    // saying nothing. They are told apart because the remedy differs: a new link for the first two,
+    // and for the third a reminder that the change may already have happened.
+    case PROBLEM.passwordResetNotFound:
+      return [formError('This reset link is no longer valid. Ask for a new one to continue.')];
+
+    case PROBLEM.passwordResetExpired:
+      return [formError('This reset link has expired. Ask for a new one to continue.')];
+
+    case PROBLEM.passwordResetAlreadyUsed:
+      return [
+        formError(
+          'This reset link has already been used. Log in with your new password, or ask for another link.',
+        ),
+      ];
+
     default:
       return [formError(fallbackMessage)];
   }

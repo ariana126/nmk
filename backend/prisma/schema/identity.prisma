@@ -6,5 +6,13 @@ model User {
   lastName     String   @map("last_name")
   registeredAt DateTime @db.Timestamptz(3) @map("registered_at")
 
+  // The pending password reset, flattened onto the user because it is a value the
+  // aggregate owns rather than an entity of its own. A redeemed reset is kept, not
+  // cleared, so reusing the same link still resolves to its user.
+  passwordResetToken       String?   @unique @map("password_reset_token")
+  passwordResetRequestedAt DateTime? @db.Timestamptz(3) @map("password_reset_requested_at")
+  passwordResetExpiresAt   DateTime? @db.Timestamptz(3) @map("password_reset_expires_at")
+  passwordResetRedeemedAt  DateTime? @db.Timestamptz(3) @map("password_reset_redeemed_at")
+
   @@map("app_user")
 }

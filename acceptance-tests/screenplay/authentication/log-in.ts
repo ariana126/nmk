@@ -38,6 +38,22 @@ export const TheirOwnCredentials = (): QuestionAdapter<Credentials> =>
   });
 
 /**
+ * The same credentials, with the password swapped for another — what "log in with his *new*
+ * password" needs. The email still comes from the notes, so this stays true to whatever the actor
+ * signed up with; only the secret they now believe in changes.
+ */
+export const TheirCredentialsWith = (
+  password: Answerable<string>,
+): QuestionAdapter<Credentials> =>
+  Question.about(
+    'their credentials, with a different password',
+    async (actor) => {
+      const details = await actor.answer(TheDetailsTheySignedUpWith());
+      return { email: details.email, password: await actor.answer(password) };
+    },
+  );
+
+/**
  * The same two routes as {@link SignUp}, for the same reason.
  *
  * `using` is what the scenarios demonstrating a visitor's journey take; `viaApiUsing` is what the
@@ -114,10 +130,11 @@ export const EnsureLoggedIn = (): Task =>
   );
 
 /**
- * A rejected sign-up leaves the actor holding a payload that may itself be malformed, so
- * logging in with it fails validation (400) when the email was the invalid or missing part,
- * and fails authentication (401) otherwise. Either way no token is issued — which is what
- * "should not be able to login" actually means.
+ * No token was issued — which is what "should not be able to login" actually means, whatever the
+ * status. Deliberately loose about which status, because its two callers reach it differently: a
+ * rejected sign-up leaves the actor holding a payload that may itself be malformed, so logging in
+ * with it fails validation (400) when the email was the invalid or missing part and authentication
+ * (401) otherwise, while a password that has since been reset away is simply wrong (401).
  */
 export const EnsureNotLoggedIn = (): Task =>
   Task.where(
@@ -127,6 +144,20 @@ export const EnsureNotLoggedIn = (): Task =>
       LastResponse.body<Partial<AccessTokenBody>>().accessToken,
       not(isPresent()),
     ),
+  );
+
+/**
+ * The API-side counterpart of {@link EnsureLoggedIn}, and the mirror image of
+ * {@link EnsureNotLoggedIn}: a token was issued, which is what "can still log in" means when
+ * nobody is looking at a screen. Steps confirming that a *rejected* password reset left the old
+ * credentials working take this route — the login is a consequence being checked, not a journey
+ * being demonstrated.
+ */
+export const EnsureAccessGranted = (): Task =>
+  Task.where(
+    '#actor ensures they were granted access',
+    Ensure.that(LastResponse.status(), equals(200)),
+    Ensure.that(LastResponse.body<AccessTokenBody>().accessToken, isPresent()),
   );
 
 /**

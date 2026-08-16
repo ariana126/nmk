@@ -8,6 +8,13 @@ import { SignUpPayload } from '../registration/sign-up-details';
 export interface AccountNotes {
   /** What the actor actually submitted to sign up — invalid or incomplete payloads included. */
   details: SignUpPayload;
+
+  /**
+   * The password reset link the actor was emailed, as read out of their inbox.
+   * Noted rather than re-read on demand, so a later step can follow the link without
+   * the inbox's response having to still be the last one.
+   */
+  resetLink: string;
 }
 
 export const TheDetailsTheySignedUpWith = (): QuestionAdapter<SignUpPayload> =>

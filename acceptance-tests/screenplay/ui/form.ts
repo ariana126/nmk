@@ -42,6 +42,16 @@ export class Form {
       'the form error summary',
     );
 
+  /**
+   * The form-level *good news* banner — the `role="status"` counterpart of the summary above,
+   * already how the login page announces a freshly created account. Like the summary it is
+   * announced to a screen reader, so it is the thing a visitor is actually told.
+   */
+  static notice = () =>
+    PageElement.located(By.css('form [role="status"]')).describedAs(
+      'the form notice',
+    );
+
   private static fieldCalled = (label: string) =>
     Form.fields().where(Text.of(Form.label()), equals(label)).first();
 

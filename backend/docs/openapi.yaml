@@ -218,6 +218,162 @@ paths:
       summary: Login with email and password
       tags:
         - Auth
+  /api/password-resets:
+    post:
+      operationId: PasswordResetController_request
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestPasswordResetDto'
+      responses:
+        '201':
+          description: Reset link sent
+        '400':
+          description: ''
+          content:
+            application/json:
+              schema:
+                properties:
+                  type:
+                    type: string
+                    example: https://my-api-doc.dev/problems/validation-error
+                  title:
+                    type: string
+                    example: Validation Error
+                  status:
+                    type: number
+                    example: 400
+                  detail:
+                    type: string
+                    example: One or more fields failed validation.
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        field:
+                          type: string
+                          example: email
+                        message:
+                          type: string
+                          example: email must be an email
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                properties:
+                  type:
+                    type: string
+                    example: https://my-api-doc.dev/problems/user-not-found
+                  title:
+                    type: string
+                    example: User Not Found
+                  status:
+                    type: number
+                    example: 404
+                  detail:
+                    type: string
+                    example: No user found with email john.doe@example.com
+                  email:
+                    type: string
+                    example: john.doe@example.com
+      summary: Ask for a password reset link by email
+      tags:
+        - Password Resets
+  /api/password-resets/{token}/password:
+    put:
+      operationId: PasswordResetController_reset
+      parameters:
+        - name: token
+          required: true
+          in: path
+          description: The secret carried by the reset link
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordDto'
+      responses:
+        '204':
+          description: Password changed
+        '400':
+          description: ''
+          content:
+            application/json:
+              schema:
+                properties:
+                  type:
+                    type: string
+                    example: https://my-api-doc.dev/problems/validation-error
+                  title:
+                    type: string
+                    example: Validation Error
+                  status:
+                    type: number
+                    example: 400
+                  detail:
+                    type: string
+                    example: One or more fields failed validation.
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        field:
+                          type: string
+                          example: email
+                        message:
+                          type: string
+                          example: email must be an email
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                properties:
+                  type:
+                    type: string
+                    example: https://my-api-doc.dev/problems/password-reset-not-found
+                  title:
+                    type: string
+                    example: Password Reset Not Found
+                  status:
+                    type: number
+                    example: 404
+                  detail:
+                    type: string
+                    example: No password reset matches the link that was used
+        '410':
+          description: ''
+          content:
+            application/json:
+              schema:
+                properties:
+                  type:
+                    type: string
+                    example: https://my-api-doc.dev/problems/password-reset-expired
+                  title:
+                    type: string
+                    example: Password Reset Expired
+                  status:
+                    type: number
+                    example: 410
+                  detail:
+                    type: string
+                    example: Password reset link expired at 2026-01-01T11:00:00.000Z
+                  expiredAt:
+                    type: string
+                    example: '2026-01-01T11:00:00.000Z'
+      summary: Choose a new password using a reset link
+      tags:
+        - Password Resets
 info:
   title: API
   description: ''
@@ -266,4 +422,22 @@ components:
           example: password123
       required:
         - email
+        - password
+    RequestPasswordResetDto:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+      required:
+        - email
+    ResetPasswordDto:
+      type: object
+      properties:
+        password:
+          type: string
+          minLength: 12
+          example: password12345
+      required:
         - password

@@ -366,6 +366,15 @@ Four more things are not obvious from the reference page and were each verified 
   constraint validation swallows the `submit` event and shows its native bubble, so the accessible
   error region never renders. **jsdom does not reproduce this** — unit tests stay green while the real
   page is broken. It is a browser-only failure, which makes it a `claude-in-chrome` review item.
+- **Await `ApplicationRef.whenStable()` before focusing a live region.** The alert and status banners
+  are always in the DOM with only their content toggled, and `.alert:empty` collapses them to
+  `display: none` — which silently refuses focus. `submit()` resolves _before_ change detection has
+  rendered the content that un-collapses the banner, so `document.getElementById(…)?.focus()` runs
+  against a hidden element and does nothing; the visitor is left on the submit button. `await
+this.appRef.whenStable()` first. This is the same class of trap as `novalidate` above and just as
+  invisible: **jsdom has no CSS cascade**, so `display: none` is never computed there and no unit
+  test can fail on it. `forgot-password-page.ts` and `reset-password-page.ts` do this; `login-page.ts`
+  and `sign-up-page.ts` predate the discovery and still focus their alerts without waiting.
 - **The directive selector is `[formField]`**, not `[field]`: `<input [formField]="f.email">`, and
   `imports: [FormField]`. This matters when working _inside_ `app-text-field`; everywhere else you
   are passing `[field]` to that component instead, per above.

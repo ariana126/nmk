@@ -126,6 +126,64 @@ describe('toSubmissionErrors', () => {
     });
   });
 
+  describe('an unknown address on the forgot-password form', () => {
+    it('lands on the email field, which is the only thing the visitor can change', () => {
+      const [error] = toSubmissionErrors({ type: PROBLEM.userNotFound }, targets, FALLBACK);
+
+      expect(error.fieldTree).toBe(emailField);
+      expect(error.message).toContain('no account');
+    });
+
+    it('does not echo the API detail, which repeats the address back verbatim', () => {
+      const [error] = toSubmissionErrors(
+        {
+          type: PROBLEM.userNotFound,
+          detail: 'No user found with email ariana@example.com',
+        },
+        targets,
+        FALLBACK,
+      );
+
+      expect(error.message).not.toContain('No user found with email');
+    });
+  });
+
+  describe('a reset link that cannot be spent', () => {
+    /**
+     * All three land on the form root rather than on the password field. The password the visitor
+     * typed is not what is wrong — the link is — so an error under that input would send them to
+     * re-type something that would fail again for the same reason.
+     */
+    it('says the link is not valid when the API knows nothing about it', () => {
+      const [error] = toSubmissionErrors(
+        { type: PROBLEM.passwordResetNotFound },
+        targets,
+        FALLBACK,
+      );
+
+      expect(error.fieldTree).toBeUndefined();
+      expect(error.message).toContain('no longer valid');
+    });
+
+    it('distinguishes an expired link, so the visitor knows to ask for another', () => {
+      const [error] = toSubmissionErrors({ type: PROBLEM.passwordResetExpired }, targets, FALLBACK);
+
+      expect(error.fieldTree).toBeUndefined();
+      expect(error.message).toContain('expired');
+    });
+
+    it('distinguishes a link that was already spent, which is not the same as expired', () => {
+      const [error] = toSubmissionErrors(
+        { type: PROBLEM.passwordResetAlreadyUsed },
+        targets,
+        FALLBACK,
+      );
+
+      expect(error.fieldTree).toBeUndefined();
+      expect(error.message).toContain('already been used');
+    });
+  });
+
   describe('anything else', () => {
     it('reports the fallback on the form when the failure is not a problem document', () => {
       expect(toSubmissionErrors(undefined, targets, FALLBACK)).toEqual([

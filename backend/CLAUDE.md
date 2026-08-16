@@ -107,9 +107,11 @@ an error), so `make lint` fails on formatting alone and `make fix-lint` reformat
 `simple-import-sort` is likewise an error, not a warning — and reordering imports is one way to
 resurface the barrel crash that `no-own-package-barrel` exists to prevent (see below).
 
-`eslint.config.mjs` carries eight deliberate rule suppressions, each with the reasoning above it —
+`eslint.config.mjs` carries nine deliberate rule suppressions, each with the reasoning above it —
 `injectable-should-be-provided` is off because of the barrel-spread DI convention, and so on. They
-are decisions, not oversights; don't "clean them up".
+are decisions, not oversights; don't "clean them up". Eight sit in the final rules block and apply
+everywhere; the ninth, `sonarjs/no-hardcoded-passwords`, is scoped to `**/*.spec.ts` in a block of
+its own, so production code is still covered.
 
 `tsconfig.json` is looser than you may assume: `noImplicitAny` and `strictBindCallApply` are
 **off**, only `strictNullChecks` is on, and `@typescript-eslint/no-explicit-any` is disabled to
@@ -150,6 +152,7 @@ every CI job can create its own env and run with no secrets.
 | `NODE_ENV` | `development` / `test` / `production`. Gates `TestingModule` (`=== 'test'`), the clock implementation (`=== 'test'`), and Swagger UI + pretty logs (`!== 'production'`). |
 | `POSTGRES_USER` / `_PASSWORD` / `_DB` / `_PORT` | Compose builds `DATABASE_URL` from these — don't set it directly. |
 | `JWT_SECRET` | Read via `ConfigService.getOrThrow` in `AuthModule`; boot fails without it. |
+| `APP_BASE_URL` | Where the browser-facing app lives — `http://localhost:4200`, and `4201` in `.env.test`. Read via `ConfigService.getOrThrow` in `IdentityModule`, so boot fails without it. The only thing built from it is the password-reset link, `{APP_BASE_URL}/reset-password?token=<secret>`, whose exact shape is a contract with whoever reads the email. |
 | `APP_PORT` | **Not in `.env.example`.** Defaults to 3000 via `${APP_PORT:-3000}` in Compose; `.env.test` sets 3001. |
 | `STUDIO_PORT` | **Not in `.env.example`.** Prisma Studio; defaults to 5555 the same way, test stack 5556. |
 | `LOG_LEVEL` | **Not in `.env.example`.** Overrides the pino level, defaulted in `app.module.ts`. The test stack sets `silent` to keep suite output readable. |
@@ -307,12 +310,15 @@ Be aware of what that suite currently covers: every spec file lives under `src/f
 `src/modules/` has **none** — the `identity` module is the reference implementation for structure,
 not for test coverage. A new module's handlers and aggregates are the first place to add some.
 
-**Testing-support endpoints** (`TestingModule`, `src/framework/infrastructure/http/testing/`) let an external test runner control the database and the clock between runs. All five return **204 No Content**:
+**Testing-support endpoints** (`TestingModule`, `src/framework/infrastructure/http/testing/`) let an external test runner control the database, the clock and the email outbox between runs. The five writing ones return **204 No Content**:
 - `POST /api/testing/migrations` — runs `prisma migrate deploy`.
-- `POST /api/testing/truncate` — truncates all application tables.
+- `POST /api/testing/truncate` — truncates all application tables **and clears the in-memory email outbox**. It is the "clean slate" endpoint, so it covers every kind of state a run leaves behind, not just the database.
 - `POST /api/testing/clock` — pins the `TunableClock` to a given instant.
 - `POST /api/testing/clock/advance` — moves it forward.
 - `POST /api/testing/clock/reset` — returns it to `DEFAULT_INSTANT`.
+
+The sixth is a read, and answers **200** with a JSON array:
+- `GET /api/testing/emails?to=<address>` — `[{to, subject, body, sentAt}]` from `InMemoryEmailOutbox`, **newest first**. `to` is validated as an email, so a malformed one is a 400. The outbox is per-process, so it is also lost on restart.
 
 `TestingModule` is imported into `AppModule` only when `NODE_ENV === 'test'`, so these endpoints exist
 on the test stack alone — not in development, not in production. See *Two stacks* above.

@@ -2,7 +2,13 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom, map, Observable } from 'rxjs';
 
 import { AuthService } from '../../api/auth/auth.service';
-import { LoginUserDto, RegisterUserDto } from '../../api/model';
+import {
+  LoginUserDto,
+  RegisterUserDto,
+  RequestPasswordResetDto,
+  ResetPasswordDto,
+} from '../../api/model';
+import { PasswordResetsService } from '../../api/password-resets/password-resets.service';
 import { UsersService } from '../../api/users/users.service';
 import { anonymous } from '../http/auth-context';
 import { SessionStore } from './session-store';
@@ -27,6 +33,7 @@ export class MissingAccessTokenError extends Error {}
 export class IdentityGateway {
   private readonly users = inject(UsersService);
   private readonly auth = inject(AuthService);
+  private readonly passwordResets = inject(PasswordResetsService);
   private readonly session = inject(SessionStore);
 
   async signUp(details: RegisterUserDto): Promise<void> {
@@ -49,6 +56,41 @@ export class IdentityGateway {
     }
 
     this.session.store(response.accessToken);
+  }
+
+  /**
+   * Asks the API to send a reset link to `details.email`.
+   *
+   * Anonymous for the obvious reason: the person calling this cannot log in. Sending a stale token
+   * along would also route a 401 into the interceptor's "your session expired" redirect, throwing
+   * the visitor off the very page they are trying to use.
+   */
+  async requestPasswordReset(details: RequestPasswordResetDto): Promise<void> {
+    await firstValueFrom(
+      this.passwordResets.passwordResetControllerRequest(details, { context: anonymous() }),
+      // A 201 with an empty body completes without emitting, which `firstValueFrom` would otherwise
+      // reject with `EmptyError` — turning success into a thrown error.
+      { defaultValue: undefined },
+    );
+  }
+
+  /**
+   * Spends a reset link on a new password.
+   *
+   * It stores nothing: a successful reset deliberately leaves the visitor logged out, so they prove
+   * the new password works by using it. Do not "helpfully" log them in here.
+   *
+   * The token comes off the address bar and the generated client interpolates it into the path
+   * unescaped, so a `/` or `?` in it would silently address a different route. Encoding it here —
+   * at the one place that knows the value is a single path segment — is what stops that.
+   */
+  async resetPassword(token: string, details: ResetPasswordDto): Promise<void> {
+    await firstValueFrom(
+      this.passwordResets.passwordResetControllerReset(encodeURIComponent(token), details, {
+        context: anonymous(),
+      }),
+      { defaultValue: undefined },
+    );
   }
 
   profile(): Observable<UserProfile> {

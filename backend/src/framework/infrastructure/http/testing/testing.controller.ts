@@ -1,8 +1,18 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { AdvanceClockDto } from './dto/advance-clock.dto';
+import { ListEmailsDto } from './dto/list-emails.dto';
 import { SetClockDto } from './dto/set-clock.dto';
+import { SentEmailView } from './sent-email.view';
 import { TestingService } from './testing.service';
 
 @ApiTags('Testing')
@@ -19,9 +29,11 @@ export class TestingController {
 
   @Post('truncate')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Truncate all application tables' })
+  @ApiOperation({
+    summary: 'Truncate all application tables and clear the email outbox',
+  })
   async truncate(): Promise<void> {
-    await this.testingService.truncateAllTables();
+    await this.testingService.truncateAll();
   }
 
   @Post('clock')
@@ -43,5 +55,11 @@ export class TestingController {
   @ApiOperation({ summary: 'Reset the clock to its default instant' })
   resetClock(): void {
     this.testingService.resetClock();
+  }
+
+  @Get('emails')
+  @ApiOperation({ summary: 'List the emails sent to an address, newest first' })
+  emails(@Query() query: ListEmailsDto): SentEmailView[] {
+    return this.testingService.emailsSentTo(query.to);
   }
 }

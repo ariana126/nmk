@@ -128,19 +128,22 @@ step now fails the run rather than merely covering less. `test-up` rather than `
 that browser at the same backend the suite truncates between scenarios, instead of at the
 developer's dev stack.
 
-The suite is **blended**: of its seventeen automated examples two drive the UI — the sign-up journey
-and the duplicate-email rejection — and the remaining fifteen stay black-box HTTP against the
-backend. That split follows _BDD in Action_ ch10's four reasons to write a UI test, and the feature
-file itself knows nothing about it: each step's grammatical voice decides which door it goes
-through, so there are no `@ui`/`@api` tags to keep in sync. `acceptance-tests/CLAUDE.md` has the
-table and the reasoning; change the ratio there, deliberately, not by drift.
+The suite is **blended**: of its twenty-four automated examples three drive the UI — the sign-up
+journey, the duplicate-email rejection and the successful password reset — and the remaining
+twenty-one stay black-box HTTP against the backend. That split follows _BDD in Action_ ch10's four
+reasons to write a UI test, and the feature file itself knows nothing about it: each step's
+grammatical voice decides which door it goes through, so there are no `@ui`/`@api` tags to keep in
+sync. `acceptance-tests/CLAUDE.md` has the table and the reasoning; change the ratio there,
+deliberately, not by drift.
 
-A further seven examples are **pending** — Gherkin the business has agreed that the backend cannot
-yet satisfy. They are untagged and they run: their step definitions `return 'pending'`, which
+**Nothing is pending today**, but the mechanism stays and is worth knowing, because it is how this
+repo writes specification ahead of implementation. Gherkin the business has agreed and the backend
+cannot yet satisfy is left untagged and *runs*: its step definitions `return 'pending'`, which
 `strict: false` in `cucumber.cjs` keeps out of the failure statuses, so CI stays green *and* the
-living documentation still carries them, marked Pending. That is the whole point of writing them
-early, and it is not what `@wip` is for — that tag means the business hasn't settled the scenario,
-and excludes it from the run and from the documentation. `acceptance-tests/CLAUDE.md` has the table.
+living documentation still carries the scenario, marked Pending. That is not what `@wip` is for —
+that tag means the business hasn't settled the scenario, and excludes it from the run and from the
+documentation. Forgot-password was the worked example of the first kind until it was automated.
+`acceptance-tests/CLAUDE.md` has the table.
 
 What makes the frontend drivable is its markup: a `<label for>` on every input, a real
 `<button type="submit">`, no `div` click targets. The suite locates elements **by label text**
@@ -149,9 +152,9 @@ already fails the build when a label goes missing. For those locators the access
 does double as the locator contract, and weakening one weakens the other.
 
 **But the gate does not cover everything the suite depends on**, and it is worth knowing where it
-stops. Alongside the accessible names, the suite anchors on six structural selectors that nothing
-gates: `form app-text-field`, `form button`, `form [role="alert"]` and `.field__error`
-(`acceptance-tests/screenplay/ui/form.ts`), `dl div` (`profile-record.ts`), and
+stops. Alongside the accessible names, the suite anchors on seven structural selectors that nothing
+gates: `form app-text-field`, `form button`, `form [role="alert"]`, `form [role="status"]` and
+`.field__error` (`acceptance-tests/screenplay/ui/form.ts`), `dl div` (`profile-record.ts`), and
 `app-site-header button|a` (`site-header.ts`). Two of those are provably outside the gate's reach:
 the audit visits each route in its **initial** state, and `frontend/a11y/accessibility.spec.ts`
 says so outright — "a form's *error* state is not reachable by navigation, so nothing here grades
@@ -280,6 +283,14 @@ because the two projects share no Docker network; the backend is reachable only 
 it publishes on the host. The copy is maintained here and only here — `make sync-api-contract` writes it,
 `make lint-api-contract` fails when it drifts. The generated client itself is gitignored and rebuilt
 by npm `pre*` hooks on every start, build, test and lint; see `frontend/CLAUDE.md`.
+
+**The backend now knows one thing about the frontend, and only one**: `APP_BASE_URL`, the origin it
+builds a password-reset link against (`{APP_BASE_URL}/reset-password?token=…`). That is the mirror
+image of `API_PROXY_TARGET` and follows the same rule — a URL, not a path, so no file under
+`backend/` resolves into `frontend/` and neither project stops building without the other. Its value
+is per-stack, and the pairing is what matters: the dev backend points at `4200`, the **test** backend
+at `4201`. Cross them and the emailed link opens a UI wired to the other stack's database. Nothing
+checks the pairing, so it is `.env.example` and `.env.test.example` that have to be right.
 
 The two spec checks compose: `lint-swagger` proves `backend/docs/openapi.json` matches the backend
 code, so `lint-api-contract` only has to prove the frontend's copy matches that file. Together they

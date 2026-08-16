@@ -10,7 +10,17 @@ import { ACCESS_TOKEN_STORAGE_KEY } from '../src/app/core/identity/access-token-
  * **Add a path to one of these lists whenever you add a route** — a page missing from them is a page
  * nothing checks. This is the one manual step the gate depends on.
  */
-const publicRoutes = ['/', '/sign-up', '/login', '/no-such-page'];
+const publicRoutes = [
+  '/',
+  '/sign-up',
+  '/login',
+  '/forgot-password',
+  // Deliberately without a `?token=`. The audit grades a route in its initial state, and the state
+  // a bare visit lands in is the one this page has to render sensibly — which is what makes the
+  // "no token" branch the branch worth grading here.
+  '/reset-password',
+  '/no-such-page',
+];
 const authenticatedRoutes = ['/profile'];
 
 /**

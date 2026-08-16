@@ -46,5 +46,12 @@
     {{ f().submitting() ? 'Logging in…' : 'Log in' }}
   </button>
 
+  <!--
+    After the button, not beside the password field: it is the way out of this page rather than
+    part of filling it in, and putting it last keeps the tab order matching the reading order of
+    "try to log in, and here is what to do if you cannot".
+  -->
+  <p class="switch"><a routerLink="/forgot-password">Forgot your password?</a></p>
+
   <p class="switch">No account yet? <a routerLink="/sign-up">Create one</a></p>
 </form>

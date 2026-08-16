@@ -100,6 +100,10 @@ Extends `DomainException`.
 Abstract base for use-case exceptions (not domain invariants) — like `DomainException`, an empty
 `extends Error`. Extend for business-rule failures surfaced at the application layer (e.g. duplicate email, invalid credentials).
 
+### `EmailSender` / `EmailMessage` (`application/service/email-sender.ts`)
+The port for "deliver this message", and the message itself (`recipient: Email`, `subject`, `body`).
+Nothing here names a transport. See `InMemoryEmailOutbox` below for the only binding.
+
 ---
 
 ## Infrastructure Layer
@@ -119,6 +123,24 @@ delegate. `ModelDelegate<PModel>` is a narrow structural type requiring only `fi
 
 ### `PrismaService`
 Extends `PrismaClient`. Provided globally by `PrismaModule` — never instantiate directly.
+
+### `InMemoryEmailOutbox` / `EmailModule` (`infrastructure/email/`)
+The only `EmailSender` the app binds. **No email provider has been chosen**, so nothing is
+delivered: `send()` appends a `SentEmail` (recipient, subject, body, `sentAt` from the injected
+`Clock`) to an in-process array, and `sentTo(recipient)` reads them back **newest first**.
+
+`EmailModule` is `@Global()` and uses the same `useExisting` trick as `ClockModule`: `EmailSender`
+and `InMemoryEmailOutbox` resolve to one singleton, so application code injects the port while the
+testing endpoints inject the concrete outbox to read it. **Choosing a real provider later is a
+single binding change in that module** — that is the whole point of keeping the port.
+
+`clear()` throws everything away, and `POST /testing/truncate` calls it alongside the table
+truncation — that endpoint exists to hand a test runner a clean slate, and sent mail is state a run
+leaves behind like any other. Being in memory, the outbox is per-process and lost on restart too.
+
+Ordering is by **insertion**, not by `sentAt`: `sentTo` reverses the array rather than sorting on
+the timestamp. That matters because under `NODE_ENV=test` the clock is pinned, so several messages
+routinely share an identical `sentAt` and a sort would leave their order undefined.
 
 ### `ProblemDetail`
 RFC 9457 problem detail builder.
@@ -179,16 +201,23 @@ answering, not whether Postgres is reachable (the `db` service has its own `pg_i
 
 ### `TestingModule` / `TestingController` / `TestingService` (`http/testing/`)
 Testing-support HTTP endpoints, consumed only by an external black-box test runner — never by
-application code (reached at `/api/testing/*`, per the global prefix above). All five answer
-**204 No Content**:
+application code (reached at `/api/testing/*`, per the global prefix above). The five writing ones
+answer **204 No Content**:
 - `POST /testing/migrations` — runs `prisma migrate deploy` via `execFile`.
-- `POST /testing/truncate` — queries `pg_tables` for the `public` schema (excluding `_prisma_migrations`) and truncates them all with `RESTART IDENTITY CASCADE`.
+- `POST /testing/truncate` — `TestingService.truncateAll()`: queries `pg_tables` for the `public` schema (excluding `_prisma_migrations`), truncates them all with `RESTART IDENTITY CASCADE`, **then clears the `InMemoryEmailOutbox`**. The private `truncateAllTables()` is the SQL half; the public method is the clean slate.
 - `POST /testing/clock` — pins the clock to the instant in the body (`SetClockDto`).
 - `POST /testing/clock/advance` — moves it forward by a duration (`AdvanceClockDto`).
 - `POST /testing/clock/reset` — returns it to `DEFAULT_INSTANT`.
 
-`TestingService` takes `(prisma: PrismaService, clock: TunableClock)` — the concrete clock, not the
-`Clock` port, since only this module is allowed to move time.
+The sixth reads, and answers **200** with `SentEmailView[]`:
+- `GET /testing/emails?to=<address>` — what `InMemoryEmailOutbox` holds for that address,
+  **newest first**, as `{to, subject, body, sentAt}` with `sentAt` an ISO string. `ListEmailsDto`
+  puts `@IsEmail()` on `to`, so a malformed address is a 400 rather than a 500 out of
+  `Email.fromString`.
+
+`TestingService` takes `(prisma: PrismaService, clock: TunableClock, outbox: InMemoryEmailOutbox)` —
+the concrete clock and the concrete outbox, not their ports, since only this module reads back what
+the rest of the app is only allowed to write.
 
 `AppModule` imports `TestingModule` only when `process.env.NODE_ENV === 'test'`. Note the condition is
 an equality, not `!== 'production'`: these endpoints are absent from development as well as production,
