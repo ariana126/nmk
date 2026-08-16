@@ -139,7 +139,7 @@ Then(
 
 Then('sees his profile', function () {
   return actorInTheSpotlight().attemptsTo(
-    ViewTheirProfile(),
+    ViewTheirProfile.viaTheSiteHeader(),
     EnsureProfileMatchesSignUpDetails(),
   );
 });

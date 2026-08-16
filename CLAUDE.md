@@ -128,22 +128,25 @@ step now fails the run rather than merely covering less. `test-up` rather than `
 that browser at the same backend the suite truncates between scenarios, instead of at the
 developer's dev stack.
 
-The suite is **blended**: of its twenty-four automated examples three drive the UI — the sign-up
-journey, the duplicate-email rejection and the successful password reset — and the remaining
-twenty-one stay black-box HTTP against the backend. That split follows _BDD in Action_ ch10's four
-reasons to write a UI test, and the feature file itself knows nothing about it: each step's
-grammatical voice decides which door it goes through, so there are no `@ui`/`@api` tags to keep in
-sync. `acceptance-tests/CLAUDE.md` has the table and the reasoning; change the ratio there,
-deliberately, not by drift.
+The suite is **blended**: all thirty-five of its examples are automated, and of those nine drive
+the UI — the sign-up journey, the duplicate-email rejection, the successful password reset and six
+of login's eight scenarios — while the remaining twenty-six stay black-box HTTP against the
+backend. That 26% split follows _BDD in Action_ ch10's four reasons to write a UI test, and the
+feature file itself knows nothing about it: each step's grammatical voice decides which door it
+goes through, so there are no `@ui`/`@api` tags to keep in sync. `acceptance-tests/CLAUDE.md` has
+the table and the reasoning; change the ratio there, deliberately, not by drift.
 
-**Nothing is pending today**, but the mechanism stays and is worth knowing, because it is how this
-repo writes specification ahead of implementation. Gherkin the business has agreed and the backend
-cannot yet satisfy is left untagged and *runs*: its step definitions `return 'pending'`, which
+**No example is pending today**, but the mechanism is worth knowing, because it is how this repo
+writes specification ahead of implementation. Gherkin the business has agreed but nobody has
+automated is left untagged and *runs*: its step definitions `return 'pending'`, which
 `strict: false` in `cucumber.cjs` keeps out of the failure statuses, so CI stays green *and* the
 living documentation still carries the scenario, marked Pending. That is not what `@wip` is for —
 that tag means the business hasn't settled the scenario, and excludes it from the run and from the
-documentation. Forgot-password was the worked example of the first kind until it was automated.
-`acceptance-tests/CLAUDE.md` has the table.
+documentation. Both feature areas that used it have since been automated: forgot-password was the
+usual kind, Gherkin written before the backend could satisfy it, while **login was the inverse and
+the more surprising case** — backend and frontend implemented all of it, and it was the automation
+that was outstanding. `acceptance-tests/CLAUDE.md` has the table and the Door column recording
+which scenarios drive the browser.
 
 What makes the frontend drivable is its markup: a `<label for>` on every input, a real
 `<button type="submit">`, no `div` click targets. The suite locates elements **by label text**

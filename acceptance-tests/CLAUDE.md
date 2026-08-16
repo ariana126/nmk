@@ -33,8 +33,12 @@ Start them with `make -C ../backend test-up` and `make -C ../frontend test-up`, 
 ## Which door a step goes through
 
 The suite is **blended** (BDD in Action, ch15): the browser where the browser is the point, HTTP
-everywhere else. All 24 of its examples are automated, and three of them drive the UI. That ratio is
-deliberate, not a staging post — ch10 puts UI tests at "a small minority" of an acceptance suite.
+everywhere else. All 35 of its examples are automated; **nine** of them drive the UI and the other
+twenty-six stay black-box HTTP. That 26% is deliberate, not a staging post — ch10 puts UI tests at
+"a small minority" of an acceptance suite. Login is what took the share there from 12%: six of its
+eight scenarios go through the browser, and three of those six are the session-lifecycle scenarios,
+which have no API door to take — there is no logout endpoint and no session resource, so what the
+browser does *is* the rule.
 
 | Scenario                     | Door                       | Why                                                                                                       |
 | ---------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------- |
@@ -45,6 +49,13 @@ deliberate, not a staging post — ch10 puts UI tests at "a small minority" of a
 | Missing data (×4)            | **API**                    | The form never submits an empty required field, so a UI version would document a *different* rule           |
 | Successful password reset    | `Given` **API**, journey **UI**, closing `Then` **API** | ch10 reason 1: a key user journey, and the second one this suite demonstrates end to end — asking for the link, following it out of the inbox, and getting back in with what they chose. The last step, that the *old* password no longer works, goes back through the API: it is a backend rule with nothing to see, and driving it through the form would mean logging the visitor out of the session the journey just proved |
 | Unknown email, expired link, link used twice, weak new password (×6) | **API** | Backend rules about who has an account, how long a token lives and how strong a password must be. No screen is the point, and six examples through two forms would be the waste ch10 warns about |
+| Successful login | **UI** | ch10 reason 1: a key user journey, and the third this suite demonstrates end to end |
+| Wrong password, unknown email | **UI** | ch10 reason 3: screen-specific logic. The rule is that both are refused *identically* — the visitor is told nothing about whether the address exists — and "identically" is only observable where a visitor reads it. Both scenarios therefore carry the **same** `Then` line, deliberately |
+| Missing credentials (×2), invalid email (×3) | **API** | ch10's waste case again, exactly as the sign-up outlines. Note login rejects a malformed address as `400` rather than `401`, which is why it is worth documenting here as well as under sign-up |
+| Logging out, profile page is private, expired session | **UI** | Session lifecycle has no API surface to check: no logout endpoint, no session resource. "Expired session" is the one with a real alternative — `GET users/me` with a two-hour-old token answers `401` — but the suite has no bearer-token plumbing for authenticated API calls, and being bounced to the login page is the rule a business would state |
+
+The **Door** column is the record of a decision taken once, when the feature was mapped, rather
+than re-taken scenario by scenario. Change the ratio here, deliberately, not by drift.
 
 `POST password-resets` answering `404 user-not-found` for an address nobody registered is the rule
 the business agreed, and this suite asserts it as built. The user-enumeration trade-off that implies
@@ -55,15 +66,24 @@ is theirs to revisit, not this suite's to soften.
 so it drives the browser. Cucumber matches the two voices with different expressions, so the split
 happens at the step-definition level with nothing to configure. It is a signal rather than a law:
 `When Fateme requests a password reset` is active yet goes through the API, deliberately — like the
-weak-password outlines it documents a backend rule, and no screen is the point.
+weak-password outlines it documents a backend rule, and no screen is the point. `When he logs in
+without providing his email` is the same case one feature over.
 
 **The feature file knows nothing about any of this**, and that is the property to protect. Every
 step text already maps to exactly one door: `should be able to login` appears only in the sign-up
 journey, `should not be able to login` only in the outlines, `should not be able to login with X's
 email` only in the duplicate-email scenario, `should be able to login with his new password` only in
 the successful reset, and the two `should still be able to login with his …` variants only in the
-scenarios where a reset was rejected. There are no `@ui`/`@api` tags and no Cucumber profiles —
-adding them would put an automation concern into a document written for the business.
+scenarios where a reset was rejected. `login.feature` keeps that property by making login the
+*subject* rather than a consequence — `he logs in`, `he logs out`, `he tries to reach his profile
+without logging in` — so not one of its sentences collides with the five above. There are no
+`@ui`/`@api` tags and no Cucumber profiles — adding them would put an automation concern into a
+document written for the business.
+
+The one place two scenarios deliberately **share** a sentence is
+`the login should be rejected due to an incorrect email or password`, which closes both "Wrong
+password" and "Unknown email". That is not a collision to fix: one step definition, one door, and
+repeating the line is what publishes the non-enumeration rule to a reader of the documentation.
 
 **What this suite deliberately no longer asserts.** The RFC 9457 envelopes for
 `409 user-already-exists` and `401 invalid-credentials` are gone, because the scenarios that used to
@@ -153,10 +173,11 @@ documentation:
 "Not automated yet" is **not** a reason to reach for `@wip`, and removing the tag is a business
 decision rather than an engineering one.
 
-**Today the suite is in neither unfinished state**: all 24 examples are automated and no scenario
-carries `@wip`. That is a snapshot, not an invariant — this project writes Gherkin ahead of the
-backend on purpose, so the middle row is where the next feature will start, and the rules above
-decide which marker it gets. The distinction is the point, and it outlives any example of it.
+**Today the suite is entirely in the bottom row**: all 35 examples are automated and passing, no
+scenario carries `@wip`, and nothing `return`s `'pending'`. `login.feature` was the last inhabitant
+of the middle row and the unusual case of it — the backend and the frontend both implemented all of
+it, and it was the *automation* that was outstanding rather than the feature. Writing Gherkin ahead
+of the backend, as forgot-password did, is the more common route in.
 
 Three things to know when the next batch of placeholders is written:
 
@@ -170,9 +191,9 @@ Three things to know when the next batch of placeholders is written:
 - **Don't redefine a step another feature already implements.** A second definition is ambiguous,
   which fails whatever `strict` says. Background steps are where this bites, because they are shared
   across feature areas by design: `Given {actor} already has an account` opens every forgot-password
-  scenario and lives in `step-definitions/registration/sign-up.steps.ts`, so those scenarios really
-  do hit the backend before anything of their own runs. Leave a comment where the redefinition would
-  have gone, and let `npx cucumber-js --dry-run` prove there is exactly one match.
+  and login scenario and lives in `step-definitions/registration/sign-up.steps.ts`, so those
+  scenarios really do hit the backend before anything of their own runs. Leave a comment where the
+  redefinition would have gone, and let `npx cucumber-js --dry-run` prove there is exactly one match.
 - **Arity must match the captured parameters**, or Cucumber rejects the definition. Name the unused
   ones `_actor`, `_password` — ESLint's `argsIgnorePattern` is `^_`.
 
@@ -181,15 +202,17 @@ Three things to know when the next batch of placeholders is written:
 ```
 specs/                                  # Gherkin. Organised by feature area, not by backend module
 ├── registration/sign-up.feature
-└── authentication/forgot-password.feature
+├── authentication/forgot-password.feature
+└── authentication/login.feature
 step-definitions/                       # Thin: each step just delegates to a task
 ├── registration/sign-up.steps.ts
-└── authentication/forgot-password.steps.ts
+├── authentication/forgot-password.steps.ts
+└── authentication/login.steps.ts
 screenplay/                             # DOMAIN layer: what an actor does, in business language
 ├── common/                             # Reusable across feature areas
-│   ├── clock.ts                        # LetTimePass (the expired-link scenario); FreezeTimeAt — no call site
+│   ├── clock.ts                        # LetTimePass (expired reset link, expired session); FreezeTimeAt — no call site
 │   ├── inbox.ts                        # CheckTheirInbox, TheMessagesInTheirInbox — the test-only outbox
-│   ├── notes.ts                        # AccountNotes (details, resetLink); TheDetailsTheySignedUpWith
+│   ├── notes.ts                        # AccountNotes (details, credentials, resetLink); TheDetailsTheySignedUpWith, TheCredentialsTheyLoggedInWith
 │   └── problem-detail.ts               # EnsureProblemDetail, EnsureValidationErrorFor, FieldsThatFailedValidation, problemTypeFor
 ├── ui/                                 # INTEGRATION layer: Lean Page Objects. Locate and report only
 │   ├── form.ts                         # Form.inputFor/errorFor/buttonCalled/errorSummary/notice — by label, via the query language
@@ -201,12 +224,13 @@ screenplay/                             # DOMAIN layer: what an actor does, in b
 │   ├── sign-up.ts                      # SignUp.using | .viaApiUsing, EnsureSignedUp, TheOmittedSignUpField, EnsureRejectedAsDuplicateEmail
 │   └── sign-up-details.ts              # signUpDetailsOf, signUpDetailsWithout, requiredSignUpFields
 ├── authentication/
-│   ├── log-in.ts                       # LogIn.using | .viaApiUsing, LogOut, EnsureLoggedIn, EnsureNotLoggedIn, EnsureAccessGranted, EnsureCredentialsRejected, TheirOwnCredentials, TheirCredentialsWith
+│   ├── log-in.ts                       # LogIn.using | .viaDirectNavigation | .viaApiUsing, LogOut, TheirOwnCredentials, TheirCredentialsWith, TheOmittedCredential, EnsureLoggedIn, EnsureNotLoggedIn, EnsureAccessGranted, EnsureCredentialsRejected, EnsureNoLongerRecognised, EnsureAskedToLogIn
+│   ├── login-credentials.ts            # Credentials, CredentialField, requiredCredentialFields, theCredentialsOf, theCredentialsWithout, theWrongPasswordOf
 │   ├── forgot-password.ts              # RequestAPasswordReset / ResetTheirPassword (.using | .viaApiUsing), EnsurePasswordResetRequested, EnsurePasswordReset, EnsureRejectedAsUnknownEmail, EnsureResetLinkExpired, EnsureResetLinkAlreadyUsed
 │   ├── reset-link.ts                   # CheckTheirInboxForTheResetLink, TheResetLinkTheyWereSent, TheResetTokenTheyWereSent
 │   └── password-reset-details.ts       # theNewPasswordOf, anotherPasswordOf
 └── profile/
-    └── view-profile.ts                 # ViewTheirProfile, EnsureProfileMatchesSignUpDetails
+    └── view-profile.ts                 # ViewTheirProfile.viaTheSiteHeader | .viaDirectNavigation, EnsureProfileMatchesSignUpDetails
 support/
 ├── actors.ts                           # Cast: assigns abilities to every actor
 ├── config.ts                           # apiBaseUrl (trailing-slash normalised — see Gotchas), appBaseUrl
@@ -215,12 +239,14 @@ support/
 cucumber.cjs                            # loads support/ + step-definitions/ via ts-node
 ```
 
-`LetTimePass` is how a scenario moves time: "Expired reset link" advances the backend clock two
-hours past a link that lives one, which is what makes an expiry testable without waiting for one. It
-posts to `testing/clock/advance` through `CallAnApi`, so it reads in the living documentation as
-something the actor did. `FreezeTimeAt` beside it still has **no call site** — wire it up when a
-scenario needs to start from a specific instant, or delete it; don't assume it is exercised. The
-default frozen instant every scenario starts from is set by `support/hooks.ts` with a raw `fetch`.
+`LetTimePass` is how a scenario moves time, and two scenarios use it: "Expired reset link" advances
+the backend clock two hours past a link that lives one, and "Expired session" the same two hours
+past an access token that lives one — which is what makes an expiry testable without waiting for
+one. It posts to `testing/clock/advance` through `CallAnApi`, so it reads in the living
+documentation as something the actor did. `FreezeTimeAt` beside it still has **no call site** — wire
+it up when a scenario needs to start from a specific instant, or delete it; don't assume it is
+exercised. The default frozen instant every scenario starts from is set by `support/hooks.ts` with a
+raw `fetch`.
 
 The three layers of `handbook:screenplay-guideline` map onto that tree: `specs/` is the
 **Specification** layer, `screenplay/` minus `ui/` is the **Domain** layer, and `screenplay/ui/`
@@ -262,11 +288,12 @@ frontend conversation rather than a new `data-test` attribute here.
 - **Tasks** are what an actor *does*, in business language: `SignUp`, `LogIn`, `ViewTheirProfile`. Assertions are tasks too, by convention named `Ensure*` — `EnsureLoggedIn`, `EnsureRejectedAsDuplicateEmail`.
 - **Questions** are what an actor *knows*: `TheDetailsTheySignedUpWith`, `FieldsThatFailedValidation`, `TheResetLinkTheyWereSent`.
 
-**Name a task for its goal, put the route in the method name.** Where a goal is reachable both
-ways, the two live on one class — `SignUp.using` drives the form, `SignUp.viaApiUsing` posts the
-payload; `LogIn.using` / `LogIn.viaApiUsing` and `RequestAPasswordReset` / `ResetTheirPassword`
-likewise. That is what lets a step swap one for the other without the feature file noticing. Don't
-name a task `SignUpViaTheForm`; the goal is signing up, and the form is how.
+**Name a task for its goal, put the route in the method name.** Where a goal is reachable more than
+one way, the variants live on one class — `SignUp.using` drives the form, `SignUp.viaApiUsing` posts
+the payload; `LogIn.using` / `.viaDirectNavigation` / `.viaApiUsing`; `ViewTheirProfile.viaTheSiteHeader`
+/ `.viaDirectNavigation`; `RequestAPasswordReset` and `ResetTheirPassword` likewise. That is what
+lets a step swap one for another without the feature file noticing. Don't name a task
+`SignUpViaTheForm`; the goal is signing up, and the form is how.
 
 Step definitions stay thin — they translate a Gherkin line into `actor.attemptsTo(...)` and nothing more. Logic belongs in tasks. Anything reusable across feature areas goes in `screenplay/common/`.
 
@@ -274,7 +301,19 @@ Step definitions stay thin — they translate a Gherkin line into `actor.attempt
 
 `signUpDetailsOf(actorName)` (`screenplay/registration/sign-up-details.ts`) derives every field from the actor's name — `Ariana` → `ariana@example.com`, firstName `Ariana`, and so on. That is why the feature file names *people* rather than credentials: the details are an implementation detail of the task layer, and one actor can work out another's email without being told it.
 
-**Passwords are deliberately per-actor.** If every actor shared one password, "Fateme logs in with Ariana's email and Fateme's password" would accidentally *be* Ariana's real credentials, and the scenario asserting that login fails would pass for the wrong reason. `theNewPasswordOf` and `anotherPasswordOf` (`screenplay/authentication/password-reset-details.ts`) follow the same rule for the passwords an actor picks when resetting — two of them, so "Reset link used twice" can tell the reset that worked from the one that was refused.
+**Passwords are deliberately per-actor.** If every actor shared one password, "Fateme logs in with Ariana's email and Fateme's password" would accidentally *be* Ariana's real credentials, and the scenario asserting that login fails would pass for the wrong reason. `theNewPasswordOf` and `anotherPasswordOf` (`screenplay/authentication/password-reset-details.ts`) follow the same rule for the passwords an actor picks when resetting — two of them, so "Reset link used twice" can tell the reset that worked from the one that was refused — and so does `theWrongPasswordOf` (`screenplay/authentication/login-credentials.ts`), the password "Wrong password" logs in with.
+
+`login-credentials.ts` is to login what `sign-up-details.ts` is to sign-up: `theCredentialsOf(name)`
+projects the sign-up details down to the two fields the endpoint accepts — it runs a whitelisting
+pipe, so a payload still carrying `firstName` is rejected outright — and `theCredentialsWithout`
+drops one for the "Missing credentials" outline. It is the file `common/notes.ts` takes the
+`Credentials` type from, which is why the type lives there rather than in `log-in.ts`: notes and
+tasks both need it, and a leaf module keeps the imports acyclic.
+
+**An actor who never signed up still knows their own credentials**, because they come from their
+name. That is what "Unknown email" needs: the Background registers only Ariana, so Fateme's notepad
+is empty and `TheirOwnCredentials()` — which reads what an actor *signed up with* — has nothing to
+give her.
 
 ### Test isolation
 
@@ -297,6 +336,9 @@ Step definitions stay thin — they translate a Gherkin line into `actor.attempt
 The browser context matters as much as the truncation. The frontend keeps its access token in
 `localStorage`, which a shared context would carry from one scenario into the next; a truncated
 database plus a stale token is a confusing failure. One browser per run, one context per actor.
+`clock/reset` matters for the same reason now that a scenario expires a *session* as well as a
+reset link: leave the clock two hours ahead and the next scenario's freshly issued token is born
+expired.
 
 All the testing endpoints are exposed by the backend only when `NODE_ENV === 'test'` — which is why
 this suite must be pointed at the test stack, and why pointing it at the dev stack fails in
@@ -314,6 +356,8 @@ password-reset journey that skipped over it would be documenting a different sto
 read through `CallAnApi` from `screenplay/common/inbox.ts`, appears in the living documentation as
 "#actor checks their inbox", and does obey the no-leading-slash rule. Ask of any new testing
 endpoint whether an actor is *doing* something; if not, it belongs in a hook with the other four.
+`LetTimePass` is the same call made the same way, and for the same reason: waiting two hours is
+something that happens *to* the actor in the story.
 
 The outbox itself exists because no email provider has been chosen yet. `GET testing/emails?to=…`
 returns `{ to, subject, body, sentAt }`, newest first; `screenplay/authentication/reset-link.ts` is
@@ -332,7 +376,13 @@ backend, with nothing keeping the two in step.
 
 **Assert `type`, not `detail`.** `type` is always present and is the diagnostic field; `detail` is optional per RFC 9457.
 
-**Assert the API as it is built, not as you wish it were.** The backend reports weak password, invalid email and missing data as the *same* `400` problem type (`validation-error`), distinguished only by which field appears in the `errors[]` array — hence `EnsureValidationErrorFor(field)`. Do not assert problem types the backend does not emit; that turns a passing scenario into a parked pending one. The dedicated types are `409 user-already-exists`, `404 user-not-found`, `410 password-reset-expired` and `410 password-reset-already-used`.
+**Assert the API as it is built, not as you wish it were.** The backend reports weak password, invalid email and missing data all as the same `validation-error` problem type — the offending field is what tells them apart, on login exactly as on sign-up, which is why both features' outlines end in `EnsureValidationErrorFor(field)`. Do not assert problem types the backend does not emit; that turns a passing scenario into a parked pending one. The dedicated types are `409 user-already-exists`, `404 user-not-found`, `410 password-reset-expired` and `410 password-reset-already-used`.
+
+**Where the field isn't named in the Gherkin, work it out from what was sent.** "Missing data" and
+"Missing credentials" both close with a step that says only "rejected due to missing required data",
+so `TheOmittedSignUpField` and `TheOmittedCredential` recover the field by comparing what the actor
+noted down submitting against what the endpoint requires. That is what `AccountNotes.credentials` is
+for; both `LogIn` routes write it.
 
 **Through the UI, assert what the visitor sees.** The same discipline, one door over: a UI step
 asserts the rendered message, the page it stayed on, whether the header offers "Log out". It never
@@ -341,6 +391,17 @@ and a test that checks them isn't testing the interface it claims to. `EnsurePro
 deliberately makes no claim about the account's id, because the profile page doesn't show one. In the
 same spirit, nothing asserts that a successful reset issues no session: the next step simply logs in
 through the browser, which can only find the header's "Log in" link if no session exists.
+
+Two of those UI assertions are worth knowing individually, because both were tempting to write
+wrongly:
+
+- `EnsureNoLongerRecognised` — "the site no longer recognises him" — asks what the **header offers**
+  (`Log in` back, `Log out` gone), not whether a token survived somewhere. It is the browser-side
+  counterpart of `EnsureNotLoggedIn`, which reads `LastResponse` and is useless through a browser.
+- `EnsureAskedToLogIn` — shared by "Profile page is private" and "Expired session", two causes, one
+  experience — asserts the login form and `/login`, and **deliberately says nothing about
+  `returnUrl`**. The frontend falls back to `/profile` when there is none, and `/profile` is the only
+  guarded route, so a `returnUrl` assertion would pass even if the feature were broken.
 
 ### Waiting, and where it belongs
 
@@ -359,16 +420,40 @@ frontend container was cold enough that Vite still had to compile the identity c
 `isVisible()` is safe to wait on even when the element is absent: it is `and(isPresent(), …)`, and
 `and` short-circuits, so a conditionally rendered banner polls rather than erroring. That is what
 lets `Wait.until(Form.notice(), isVisible())` work against a confirmation that isn't in the DOM
-until the submit succeeds.
+until the submit succeeds — and what lets `EnsureNoLongerRecognised` say `not(isVisible())` about a
+"Log out" button that has left the DOM entirely.
 
-**Three of the four locate tasks navigate; `LocateTheLoginForm` does not, and so `LogIn.using`
-cannot open a scenario.** `LocateTheSignUpForm` and `LocateTheForgotPasswordForm` start from `/`;
+**Submitting a form means clicking *and waiting for the answer*.** `SubmitTheLoginForm` polls until
+the site has had its say — the visitor has either been taken somewhere else or told what was wrong —
+because a person doesn't walk away from a form mid-request. This is not defensive coding; it is the
+one thing that made "Expired session" honest. That scenario is the only one that follows a login
+with an *action* rather than an assertion, and every other browser login in the suite happens to be
+followed by a step that waits (`EnsureLoggedIn`, `EnsureCredentialsRejected`, `LogOut`), which hid
+the gap for as long as it existed. Landing on the profile takes around half a second; without the
+wait, the clock advance and the re-navigation to `/profile` both went out while the login was still
+in flight, Playwright's navigation was swallowed by the app's own, and the original page went on to
+load the profile with a token that was still valid when it asked — a failure that had nothing to do
+with expiry. When the login request lost the race outright the visitor was never signed in at all,
+and the scenario would have *passed* while proving nothing.
+
+**Two locate tasks navigate from `/`, one follows a link out of an inbox, and the login form has
+two routes of its own.** `LocateTheSignUpForm` and `LocateTheForgotPasswordForm` start from `/`;
 `LocateTheResetPasswordForm` follows the link out of the actor's inbox, which is how a real visitor
-reaches that page. `LocateTheLoginForm` instead clicks the header's "Log in" link on whatever page
-is already open, which is what a returning visitor actually does. A scenario whose first UI step is
-a login therefore runs against `about:blank` and fails with `ListItemNotFoundError`. Reach the login
-page from somewhere — "Successful password reset" reaches it by landing there after the reset — or
-add a navigation to that task deliberately.
+reaches that page. `LocateTheLoginForm` has `viaTheSiteHeader`, which clicks the header's "Log in"
+link on whatever page is already open — what a returning visitor browsing the site does, and the
+route `sign-up.feature` and the password-reset journey take — and `viaDirectNavigation`, which opens
+`/login` cold. `LogIn.using` and `LogIn.viaDirectNavigation` are the two doors onto them.
+
+**Take the direct route whenever nothing has opened a page yet.** `login.feature`'s Background is
+API-only, so every one of its UI scenarios starts on `about:blank`, where the header route fails
+with `ListItemNotFoundError`. Both are things a returning visitor really does, so this is a choice
+between two truths rather than a workaround.
+
+`ViewTheirProfile` splits the same way, and its direct route is load-bearing twice over: an
+anonymous visitor is offered no "Profile" link to click, and a visitor whose session expired while
+looking at the page needs the page **fetched again** — a router-internal navigation to a URL already
+open re-renders nothing, so no `GET users/me` goes out, nothing is refused, and "Expired session"
+would pass while proving nothing.
 
 ### Living documentation
 
@@ -383,13 +468,15 @@ Two phases:
 
 `target/` is bind-mounted, so the living documentation opens straight from the host. `make open-living-documentation` does phase 2 and then opens `index.html` in the default browser — the one target that runs on the host rather than in a container, because a browser cannot be launched from inside one. Like `render-living-documentation`, it needs the container up.
 
-Artifacts **accumulate** across runs — if the counts look wrong, `rm -rf target/` and re-run.
+Artifacts **accumulate** across runs — if the counts look wrong, or a fixed failure's screenshot is
+still sitting there, clear it out and re-run. The files are written by the container as root, so
+`docker compose exec app rm -rf target` rather than `rm -rf target` from the host.
 
 The target is named for what it produces, not for the tool that produces it — the npm script it wraps keeps its own name (`npm run report`), the same way `lint-architecture` wraps `npm run depcruise` in the backend.
 
 ## Gotchas
 
-**Resource URIs must be relative, with no leading slash.** Serenity's `CallAnApi` resolves them with `new URL(uri, apiBaseUrl)` — *not* axios's `combineURLs`. `new URL('/users', 'http://host/api')` discards the `/api` segment and yields `http://host/users`, so every request 404s. `support/config.ts` guarantees the base URL ends in a slash; always write `PostRequest.to('users')`, never `PostRequest.to('/users')`.
+**Resource URIs must be relative, with no leading slash.** Serenity's `CallAnApi` resolves them with `new URL(uri, apiBaseUrl)` — *not* axios's `combineURLs`. `new URL('/users', 'http://host/api')` discards the `/api` segment and yields `http://host/users`, so every request 404s. `support/config.ts` guarantees the base URL ends in a slash; always write `PostRequest.to('users')`, never `PostRequest.to('/users')`. Browser navigation is the opposite: `Navigate.to('/login')` resolves against the Playwright context's `baseURL`, and there the leading slash is right.
 
 **`localhost` works because the container shares the host's network.** `docker-compose.yml` sets
 `network_mode: host`, so `http://localhost:3001` and `http://localhost:4201` inside the container
@@ -411,6 +498,11 @@ none are guessable from the markup alone:
    assert after a submit, never before.
 3. **A server error clears the moment its field is edited.** Assert it before typing anything else.
 
+A fourth, one layer up: **a rejected login is reported on the banner, never beside the email
+field** — the app deliberately declines to say which of the two was wrong. A duplicate email at
+sign-up is the mirror case, reported *on the field* because there the point is to say exactly what
+is wrong and where.
+
 **Chromium lives in this image.** The Dockerfile installs it with
 `npx playwright install --with-deps chromium`, which fetches whatever the installed `playwright`
 pins — so upgrading Playwright is an ordinary dependency bump with no image tag to keep in step.
@@ -424,7 +516,7 @@ is an anonymous volume, so `make up` alone will keep reusing the one built befor
 --renew-anon-volumes` fixes it. `docker compose run --rm` builds a fresh volume every time and so
 never shows the problem, which is what makes this confusing — and CI never hits it at all.
 
-**`actorCalled()` moves the spotlight.** Steps with no explicit subject (`Then the sign-up should be rejected...`) resolve their actor via `actorInTheSpotlight()`, which is whoever was named last. That is what the `{actorName}` parameter type is for: it yields a bare name string *without* summoning the actor. In `Fateme signs up with Ariana's email`, using `{actor}` for both names would leave **Ariana** in the spotlight, and the next `Then` would read her empty `LastResponse` instead of Fateme's. The same rule is what makes `When Fateme requests a password reset` use `{actor}` rather than `{pronoun}`: the feature file names somebody who is *not* the actor in the spotlight, and naming her is what puts her last response in front of the following `Then`.
+**`actorCalled()` moves the spotlight.** Steps with no explicit subject (`Then the sign-up should be rejected...`) resolve their actor via `actorInTheSpotlight()`, which is whoever was named last. That is what the `{actorName}` parameter type is for: it yields a bare name string *without* summoning the actor. In `Fateme signs up with Ariana's email`, using `{actor}` for both names would leave **Ariana** in the spotlight, and the next `Then` would read her empty `LastResponse` instead of Fateme's. The same rule is what makes `When Fateme logs in` and `When Fateme requests a password reset` use `{actor}` rather than `{pronoun}`: the feature file names somebody who is *not* the actor in the spotlight, and naming her is what puts her rejection in front of the following `Then`.
 
 The parameter types (`support/parameter-types.ts`):
 
@@ -434,6 +526,11 @@ The parameter types (`support/parameter-types.ts`):
 | `{actorName}` | `Ariana` | the plain string — no actor, no spotlight change |
 | `{pronoun}` | `he`, `she`, `they` | `actorInTheSpotlight()` |
 | `{field}` | `email`, `password`, `first name`, `last name` | the payload key (`firstName`, `lastName`) |
+
+`{field}` yields any of the four sign-up fields, but only two of them are credentials — so
+`login.steps.ts` declares that parameter as `CredentialField` rather than `SignUpField`. Cucumber's
+own types are loose enough not to notice; the narrower type is there to say which half of the
+mapping that step can legitimately see.
 
 ## Environment
 

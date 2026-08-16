@@ -1,17 +1,35 @@
 import { Question, QuestionAdapter, Task, Wait } from '@serenity-js/core';
 import { Ensure, equals } from '@serenity-js/assertions';
-import { Click, isVisible, Page, Text } from '@serenity-js/web';
+import { Click, isVisible, Navigate, Page, Text } from '@serenity-js/web';
 import { TheDetailsTheySignedUpWith } from '../common/notes';
 import { ProfileRecord } from '../ui/profile-record';
 import { SiteHeader } from '../ui/site-header';
 
-export const ViewTheirProfile = (): Task =>
-  Task.where(
-    '#actor views their profile',
-    Wait.until(SiteHeader.profileLink(), isVisible()),
-    Click.on(SiteHeader.profileLink()),
-    Wait.until(Page.current().url().pathname, equals('/profile')),
-  );
+/**
+ * One goal, two routes, with the route in the method name.
+ *
+ * - `viaTheSiteHeader` clicks "Profile" — what a signed-in visitor does, and the only route
+ *   available to them, since the link is all the site offers.
+ * - `viaDirectNavigation` asks the browser for `/profile` outright. Two scenarios need it and
+ *   neither could take the header: an anonymous visitor is offered no "Profile" link to click,
+ *   and a visitor whose session has expired while looking at the page needs the page *fetched
+ *   again* — a router-internal navigation to the URL already open re-renders nothing, so no
+ *   request goes out, nothing is refused, and the scenario would pass while proving nothing.
+ *   It deliberately waits for nothing afterwards: whether the profile even loads is the question
+ *   its callers are asking.
+ */
+export class ViewTheirProfile {
+  static viaTheSiteHeader = (): Task =>
+    Task.where(
+      '#actor views their profile',
+      Wait.until(SiteHeader.profileLink(), isVisible()),
+      Click.on(SiteHeader.profileLink()),
+      Wait.until(Page.current().url().pathname, equals('/profile')),
+    );
+
+  static viaDirectNavigation = (): Task =>
+    Task.where('#actor goes to their profile page', Navigate.to('/profile'));
+}
 
 /**
  * The page renders a name, not two fields — so this is what the actor is actually looking at.

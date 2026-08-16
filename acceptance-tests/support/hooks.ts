@@ -11,8 +11,9 @@ import * as playwright from 'playwright';
 import { Actors } from './actors';
 import { apiBaseUrl, appBaseUrl } from './config';
 
-// Generous, because two scenarios drive a browser. The frontend test stack is `ng serve`, so the
-// first navigation of a run also waits out Vite's on-demand compilation of the identity chunk.
+// Generous, because nine of the examples drive a browser. The frontend test stack is
+// `ng serve`, so the first navigation of a run also waits out Vite's on-demand
+// compilation of the identity chunk.
 setDefaultTimeout(60_000);
 
 let browser: playwright.Browser;
