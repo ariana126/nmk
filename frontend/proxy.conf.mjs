@@ -8,7 +8,7 @@
 //
 // `.mjs` rather than the usual proxy.conf.json because a JSON file cannot read the environment:
 // the target is what distinguishes nmk-frontend (backend :3000) from nmk-frontend-test
-// (backend :3001). @angular/build imports any non-.json proxy config as a module.
+// (backend :3002). @angular/build imports any non-.json proxy config as a module.
 //
 // host.docker.internal, not a service name: the backend is a separate Compose project with its
 // own network, reachable only through the ports it publishes on the host. docker-compose.yml

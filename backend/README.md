@@ -115,7 +115,7 @@ Swagger docs: http://localhost:3000/api-docs. Prisma Studio: `make npm db:studio
 ### Two stacks
 
 `make up` starts the development stack **and** an isolated test stack — the same image with a
-different env file, on ports 3001/5433 with `NODE_ENV=test` and its own database volume. Only the
+different env file, on ports 3002/5433 with `NODE_ENV=test` and its own database volume. Only the
 test stack mounts the endpoints that migrate and truncate the database, so no test run can reach
 development data. `make test-up`, `make test-down` and `make test-reset` target it on its own;
 `make down` and `make reset` act on both. Full detail in `CLAUDE.md`.

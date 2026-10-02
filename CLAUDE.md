@@ -7,11 +7,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 A monorepo of independent projects, each with its own Makefile, Docker Compose stack, and CLAUDE.md:
 
 - **`backend/`** — NestJS + Prisma + Postgres API (DDD + CQRS). Two Compose projects, both `app` + `db`:
-  `nmk-backend` (development, ports 3000/5432) and `nmk-backend-test` (`NODE_ENV=test`, ports 3001/5433).
+  `nmk-backend` (development, ports 3000/5432) and `nmk-backend-test` (`NODE_ENV=test`, ports 3002/5433).
   `make up` starts both; the test stack is what the acceptance suite drives.
 - **`frontend/`** — Angular app (Vitest + jsdom, ESLint, Prettier). Two Compose projects, both a
   single `app` service: `nmk-frontend` (development, port 4200, proxying `/api` to the dev backend
-  on 3000) and `nmk-frontend-test` (port 4201, proxying to the backend **test** stack on 3001).
+  on 3000) and `nmk-frontend-test` (port 4201, proxying to the backend **test** stack on 3002).
   `make up` starts both. Its Vitest unit tests are wired into the root `run-unit-tests`.
 - **`acceptance-tests/`** — black-box BDD suite (Cucumber + Serenity/JS) driving the backend over
   HTTP and the frontend through a browser. Compose project `nmk-acceptance-tests` (`app`).

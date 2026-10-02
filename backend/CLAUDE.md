@@ -35,7 +35,7 @@ There are two Docker Compose projects, and `up`, `down` and `reset` act on **bot
 | Files | `docker-compose.yml` | `+ docker-compose.test.yml` |
 | Env file | `.env` (from `.env.example`) | `.env.test` (from `.env.test.example`) |
 | `NODE_ENV` | `development` | `test` |
-| App / Postgres port | 3000 / 5432 | 3001 / 5433 |
+| App / Postgres port | 3000 / 5432 | 3002 / 5433 |
 | Logging | pretty-printed, `debug` | `LOG_LEVEL=silent` |
 
 `docker-compose.test.yml` is five lines long: it names the second Compose project and swaps the env
@@ -153,7 +153,7 @@ every CI job can create its own env and run with no secrets.
 | `POSTGRES_USER` / `_PASSWORD` / `_DB` / `_PORT` | Compose builds `DATABASE_URL` from these — don't set it directly. |
 | `JWT_SECRET` | Read via `ConfigService.getOrThrow` in `AuthModule`; boot fails without it. |
 | `APP_BASE_URL` | Where the browser-facing app lives — `http://localhost:4200`, and `4201` in `.env.test`. Read via `ConfigService.getOrThrow` in `IdentityModule`, so boot fails without it. The only thing built from it is the password-reset link, `{APP_BASE_URL}/reset-password?token=<secret>`, whose exact shape is a contract with whoever reads the email. |
-| `APP_PORT` | **Not in `.env.example`.** Defaults to 3000 via `${APP_PORT:-3000}` in Compose; `.env.test` sets 3001. |
+| `APP_PORT` | **Not in `.env.example`.** Defaults to 3000 via `${APP_PORT:-3000}` in Compose; `.env.test` sets 3002. |
 | `STUDIO_PORT` | **Not in `.env.example`.** Prisma Studio; defaults to 5555 the same way, test stack 5556. |
 | `LOG_LEVEL` | **Not in `.env.example`.** Overrides the pino level, defaulted in `app.module.ts`. The test stack sets `silent` to keep suite output readable. |
 

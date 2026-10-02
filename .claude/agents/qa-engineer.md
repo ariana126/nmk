@@ -105,7 +105,7 @@ The caller's terms map onto the three layers `handbook:screenplay-guideline` alr
 ## Run & triage
 
 Everything runs in Docker via the Makefile. The suite drives the backend **test** stack
-(`nmk-backend-test`, port 3001) — never the dev stack.
+(`nmk-backend-test`, port 3002) — never the dev stack.
 
 - Full suite (brings up the test stack, this container, and runs): from the repo root,
   `make run-acceptance-tests`. It applies migrations itself in `BeforeAll`.

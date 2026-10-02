@@ -18,14 +18,14 @@ databases, so a run can never touch anything a developer is working in:
 
 | Stack               | Compose project     | Port     |                                              |
 | ------------------- | ------------------- | -------- | -------------------------------------------- |
-| backend **test**    | `nmk-backend-test`  | **3001** | `NODE_ENV=test`, own database                |
+| backend **test**    | `nmk-backend-test`  | **3002** | `NODE_ENV=test`, own database                |
 | frontend **test**   | `nmk-frontend-test` | **4201** | proxies `/api` to the backend test stack      |
 
 Not the dev stacks on 3000/4200. The testing endpoints this suite depends on
 (`POST /api/testing/migrations`, `/truncate`, `/clock/reset` and `/clock/advance`, plus
 `GET /api/testing/emails`) mount only at `NODE_ENV === 'test'`, so they simply don't exist on
 3000 — and a run can never truncate dev data. The frontend has no such switch; what keeps it honest
-is `API_PROXY_TARGET`, which points 4201 at 3001 and 4200 at 3000.
+is `API_PROXY_TARGET`, which points 4201 at 3002 and 4200 at 3000.
 
 Start them with `make -C ../backend test-up` and `make -C ../frontend test-up`, or let the root
 `make run-acceptance-tests` do the whole sequence: both test stacks up, this container up, suite run.
@@ -479,9 +479,9 @@ The target is named for what it produces, not for the tool that produces it — 
 **Resource URIs must be relative, with no leading slash.** Serenity's `CallAnApi` resolves them with `new URL(uri, apiBaseUrl)` — *not* axios's `combineURLs`. `new URL('/users', 'http://host/api')` discards the `/api` segment and yields `http://host/users`, so every request 404s. `support/config.ts` guarantees the base URL ends in a slash; always write `PostRequest.to('users')`, never `PostRequest.to('/users')`. Browser navigation is the opposite: `Navigate.to('/login')` resolves against the Playwright context's `baseURL`, and there the leading slash is right.
 
 **`localhost` works because the container shares the host's network.** `docker-compose.yml` sets
-`network_mode: host`, so `http://localhost:3001` and `http://localhost:4201` inside the container
+`network_mode: host`, so `http://localhost:3002` and `http://localhost:4201` inside the container
 reach the ports the backend and frontend test stacks published on the host. There is no shared
-Docker network between the three projects, and no service-name DNS — `http://app:3001` would not
+Docker network between the three projects, and no service-name DNS — `http://app:3002` would not
 resolve. `localhost` is also the only host that works for the browser: Vite's DNS-rebinding defence
 403s any `Host` it doesn't recognise, and Chromium force-upgrades `.app` to HTTPS because it is an
 HSTS-preloaded TLD. Both traps are documented in `../frontend/CLAUDE.md`.
@@ -536,7 +536,7 @@ mapping that step can legitimately see.
 
 `.env` (copied from `.env.example` by `make setup`, which `make up` runs for you):
 
-- `API_BASE_URL` — the backend's API base. Defaults to `http://localhost:3001/api`: the **test**
+- `API_BASE_URL` — the backend's API base. Defaults to `http://localhost:3002/api`: the **test**
   stack, not the dev stack on 3000.
 - `APP_BASE_URL` — the frontend the browser drives. Defaults to `http://localhost:4201`: again the
   **test** stack, whose `/api` proxy points at the same backend `API_BASE_URL` names. Pointing this

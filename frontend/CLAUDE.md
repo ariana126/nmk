@@ -99,7 +99,7 @@ split, mirrored:
 | Files              | `docker-compose.yml`         | `+ docker-compose.test.yml`            |
 | Env file           | `.env` (from `.env.example`) | `.env.test` (from `.env.test.example`) |
 | Published port     | 4200                         | 4201                                   |
-| `API_PROXY_TARGET` | backend dev, `:3000`         | backend test, `:3001`                  |
+| `API_PROXY_TARGET` | backend dev, `:3000`         | backend test, `:3002`                  |
 
 The override file is five lines: the test stack is the same image with a different env file.
 Only the _host_ side of the port mapping moves — `${APP_PORT:-4200}:4200` — so the container still
@@ -208,7 +208,7 @@ request stays same-origin so the backend needs no CORS. Three things about it ar
 build, where there is no dev server to proxy through, and it is what the `angular-developer` skill's
 `references/environment-configuration.md` describes. It is the wrong one here: environment files are
 build-time, so two targets would mean two builds where two env files suffice, and it would put the
-browser on a cross-origin call to `:3001` — CORS on the backend, for a problem the proxy does not
+browser on a cross-origin call to `:3002` — CORS on the backend, for a problem the proxy does not
 have.
 
 Nothing here breaks the monorepo's one-way dependency: `API_PROXY_TARGET` is a URL, not a path.
